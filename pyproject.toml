@@ -1,0 +1,82 @@
+[project]
+name = "teplo-toolkit"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "clearml>=2.0.2",
+    "loguru>=0.7.3",
+    "pydantic>=2.12.4",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+]
+
+
+
+[tool.pyright]
+typeCheckingMode = "standard" # "off" | "basic" | "standard" | "strict"
+reportMissingTypeStubs = false
+exclude = [
+    ".venv",
+    "build",
+    "dist",
+    "__pycache__",
+    "migrations",
+    "notebooks",
+]
+
+[tool.ruff.lint]
+exclude = [
+    ".venv",
+    "build",
+    "dist",
+    "__pycache__",
+    "migrations",
+    "notebooks",
+]
+
+select = [
+    "ANN",  # Enforce type annotations
+    "C90",  # Enforce maximum cyclomatic complexity
+    "D",    # Enforce docstrings
+    "NPY",  # Enforce numpy style
+    "E",    # Pycodestyle formatting errors
+    "F",    # Pyflakes logic errors
+    "B",    # Flake8-bugbear suspicious code patterns
+    "UP",   # Pyupgrade modern Python syntax
+    "N",    # Pep8-naming correct class/function names
+    "S",    # Flake8-bandit security issues
+    "C4",   # Flake8-comprehensions better comprehensions
+    "T20",  # Flake8-print forbid debug print statements
+    "TID",  # Flake8-tidy-imports forbid relative imports
+    "A",    # Flake8-builtins avoid shadowing built-ins
+    "PTH",  # Flake8-use-pathlib prefer pathlib over os.path
+    "RUF",  # Ruff-specific rules
+    "Q",   # quotes checks
+]
+ignore = [
+    "ANN001",  # Missing type annotation for function argument
+    "ANN002",  # Missing type annotation for *args
+    "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed
+    "D100",    # Missing docstring in public module
+    "D104",    # Missing docstring in public package
+    "D203",    # 1 blank line required before class docstring
+    "D212",    # Multi-line docstring summary should start at the first line
+    "D401",    # First line of docstring should be in imperative mood
+    "E501",    # Line too long
+    "N806",   # Variable in function should be lowercase
+    "N803",   # Argument name should be lowercase
+    "N812",   # Import alias should be lowercase
+]
+
+
+[tool.ruff.lint.isort]
+known-first-party = ["src", "app", "core"]
+combine-as-imports = true
+force-single-line = true
+lines-after-imports = 2
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
