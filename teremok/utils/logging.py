@@ -37,8 +37,6 @@ _PRESETS = {"default": _DEFAULT_FMT, "only_message": _ONLY_MESSAGE_FMT}
 
 
 def _caller_filename() -> str:
-    """Имя файла, из которого вызвали setup_logger()."""
-    # Берём первый фрейм выше текущей функции
     frame = inspect.stack()[2] if len(inspect.stack()) > 2 else inspect.stack()[1]
     name = Path(frame.filename).name
     return name
@@ -65,13 +63,11 @@ def setup_logger(
         _base_logger.remove()
         _DEFAULT_SINK_REMOVED = True
 
-    # Определяем имя канала
     if name is None:
         base = _caller_filename()
     else:
         base = name
 
-    # Нужен ли префикс ранка
     if add_rank is None:
         try:
             add_rank = dist.is_available() and dist.is_initialized()
@@ -89,10 +85,8 @@ def setup_logger(
     else:
         fmt = str(fmt)
 
-    # Уникальный id для фильтрации записей именно этого логгера
     logger_id = uuid.uuid4().hex
 
-    # Вешаем отдельный sink собственным форматом и фильтром по extra.logger_id
     _base_logger.add(
         sink,
         level=level,
@@ -102,8 +96,6 @@ def setup_logger(
         filter=lambda r: r["extra"].get("logger_id") == logger_id,
     )
 
-    # Возвращаем proxy-логгер, в extra которого проставлены наш id и "channel"
-    # Используй: log.info("..."), log.error("..."), и т.д.
     return _base_logger.bind(logger_id=logger_id, channel=channel)
 
 

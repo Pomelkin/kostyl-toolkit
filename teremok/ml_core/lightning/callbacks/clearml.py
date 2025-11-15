@@ -2,13 +2,13 @@ from typing import override
 
 from clearml import OutputModel
 from clearml import Task
-from lightning import LightningModule
 from lightning import Trainer
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.callbacks import ModelCheckpoint
 
 from teremok.ml_core.clearml.logging_utils import find_version_in_tags
 from teremok.ml_core.clearml.logging_utils import increment_version
+from teremok.ml_core.lightning import TeremokLightningModule
 from teremok.utils.logging import setup_logger
 
 
@@ -45,7 +45,7 @@ class ClearMLRegistryUploaderCallback(Callback):
         return
 
     @override
-    def on_train_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_train_end(self, trainer: Trainer, pl_module: TeremokLightningModule) -> None:
         if not trainer.is_global_zero:
             return
 
@@ -57,12 +57,20 @@ class ClearMLRegistryUploaderCallback(Callback):
             self.output_model_tags.remove(version)
             self.output_model_tags.append(new_version)
 
+        config: dict[str, str] | None = None
+        try:
+            model_config = pl_module.get_model_config()
+            if model_config is not None:
+                config = model_config.to_dict()
+        except AttributeError:
+            pass
+
         output_model = OutputModel(
             task=self.task,
             name=self.output_model_name,
             framework="PyTorch",
             tags=self.output_model_tags,
-            config_dict=pl_module.get_model_config(return_dict=True),  # type: ignore
+            config_dict=config,
         )
         if self.ckpt_callback.best_model_path != "":
             logger.info(f"Uploading best model: {self.ckpt_callback.best_model_path}")
