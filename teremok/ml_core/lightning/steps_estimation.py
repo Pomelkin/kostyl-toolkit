@@ -35,7 +35,7 @@ def estimate_total_steps(
     total_steps = steps_per_epoch * trainer.max_epochs
 
     logger.info(
-        f"Total steps: {total_steps} (per-epoch: {steps_per_epoch})\n: "
+        f"Total steps: {total_steps} (per-epoch: {steps_per_epoch})\n"
         f"-> Dataloader len: {dataloader_len}\n"
         f"-> Accumulate grad batches: {trainer.accumulate_grad_batches}\n"
         f"-> Epochs: {trainer.max_epochs}\n "
