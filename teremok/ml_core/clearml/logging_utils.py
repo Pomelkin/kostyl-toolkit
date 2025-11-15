@@ -20,7 +20,7 @@ def increment_version(s: str) -> str:
     m = re.fullmatch(r"v(\.?)(\d+)\.(\d+)", s)
     if not m:
         raise ValueError(
-            f"Неверный формат версии: {s!r}. Ожидается 'vX.Y' или 'v.X.Y'."
+            f"Invalid version format: {s!r}. Expected 'vX.Y' or 'v.X.Y'."
         )
 
     vdot, major_str, minor_str = m.groups()
