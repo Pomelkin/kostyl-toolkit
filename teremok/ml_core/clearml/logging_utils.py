@@ -27,7 +27,7 @@ def increment_version(s: str) -> str:
     major = int(major_str)
     minor = int(minor_str) + 1
 
-    # сохраняем leading zeros по исходной ширине, длина может увеличиться (99 -> 100)
+    # preserve leading zeros based on original width, length may increase (99 -> 100)
     minor_out = str(minor).zfill(len(minor_str))
     prefix = f"v{vdot}"  # 'v' or 'v.'
     return f"{prefix}{major}.{minor_out}"
