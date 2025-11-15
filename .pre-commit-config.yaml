@@ -34,19 +34,20 @@ repos:
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.14.3
   hooks:
-  - id: ruff
-    name: ruff isort
-    types_or: [ python, pyi ]
-    args: [ check --select I --fix . ]
-  - id: ruff
-    name: ruff lint
-    types_or: [ python, pyi ]
-    args: [ --fix ]
   - id: ruff-format
     name: ruff format
     types_or:
     - python
     - pyi
+  - id: ruff
+    name: ruff lint
+    types_or: [ python, pyi ]
+    args: [ "--fix" ]
+
+  - id: ruff
+    name: ruff isort
+    types_or: [ python, pyi ]
+    args: [ "check", "--select", "I", "--fix" ]
 
 - repo: https://github.com/astral-sh/uv-pre-commit
   rev: 0.9.7
