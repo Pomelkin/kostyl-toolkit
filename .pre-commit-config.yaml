@@ -16,14 +16,14 @@ repos:
   - id: detect-private-key
   - id: debug-statements
 
-- repo: https://github.com/asottile/reorder-python-imports
-  rev: v3.16.0
-  hooks:
-  - id: reorder-python-imports
-    args:
-    - --py312-plus
-    - --application-directories=.:core
-    types_or: [ python, pyi ]
+# - repo: https://github.com/asottile/reorder-python-imports
+#   rev: v3.16.0
+#   hooks:
+#   - id: reorder-python-imports
+#     args:
+#     - --py312-plus
+#     - --application-directories=.:core
+#     types_or: [ python, pyi ]
 
 - repo: https://github.com/asottile/pyupgrade
   rev: v3.21.0
@@ -35,9 +35,15 @@ repos:
   rev: v0.14.3
   hooks:
   - id: ruff
+    name: ruff isort
+    types_or: [ python, pyi ]
+    args: [ check --select I --fix . ]
+  - id: ruff
+    name: ruff lint
     types_or: [ python, pyi ]
     args: [ --fix ]
   - id: ruff-format
+    name: ruff format
     types_or:
     - python
     - pyi
