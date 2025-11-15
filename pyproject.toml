@@ -5,13 +5,19 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "case-converter>=1.2.0",
     "clearml>=2.0.2",
+    "flash-attn>=2.8.3",
+    "lightning>=2.5.6",
     "loguru>=0.7.3",
     "pydantic>=2.12.4",
+    "transformers>=4.57.1",
 ]
 
 [dependency-groups]
 dev = [
+    "ipywidgets>=8.1.8",
+    "notebook>=7.4.7",
     "pre-commit>=4.3.0",
 ]
 
@@ -20,6 +26,7 @@ dev = [
 [tool.pyright]
 typeCheckingMode = "standard" # "off" | "basic" | "standard" | "strict"
 reportMissingTypeStubs = false
+reportIncompatibleMethodOverride = false
 exclude = [
     ".venv",
     "build",
@@ -71,6 +78,7 @@ ignore = [
     "N806",   # Variable in function should be lowercase
     "N803",   # Argument name should be lowercase
     "N812",   # Import alias should be lowercase
+    "N817",
 ]
 
 
