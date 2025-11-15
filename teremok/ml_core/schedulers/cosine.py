@@ -62,10 +62,6 @@ class _CosineSchedulerCore(BaseScheduler):
                 self.warmup_value, self.base_value, warmup_iters, dtype=np.float64
             )
         else:
-            if (self.warmup_iters_ratio is None) != (self.warmup_value is None):
-                raise ValueError(
-                    "Both warmup_value and warmup_iters_ratio must be provided or neither"
-                )
             warmup_iters = 0
             warmup_schedule = np.array([], dtype=np.float64)
 
