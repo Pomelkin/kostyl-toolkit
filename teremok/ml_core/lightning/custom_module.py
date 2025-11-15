@@ -1,0 +1,161 @@
+from collections.abc import Callable
+from collections.abc import Mapping
+from typing import Any
+from typing import override
+
+import lightning as L
+import torch
+import torch.distributed as dist
+from lightning.pytorch.strategies import FSDPStrategy
+from torch.distributed import ProcessGroup
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torchmetrics import Metric
+from torchmetrics import MetricCollection
+from transformers import PretrainedConfig
+from transformers import PreTrainedModel
+
+from teremok.ml_core.configs import HyperparamsConfig
+from teremok.ml_core.metrics_formatting import apply_suffix
+from teremok.ml_core.schedulers.base import BaseScheduler
+from teremok.utils import setup_logger
+
+
+logger = setup_logger()
+
+
+class TeremokLightningModule(L.LightningModule):
+    """Custom PyTorch Lightning Module with logging, checkpointing, and distributed training utilities."""
+
+    model: PreTrainedModel | None
+    hyperparams: HyperparamsConfig
+
+    def get_process_group(self) -> ProcessGroup | None:
+        """
+        Retrieves the data parallel process group for distributed training.
+
+        This method checks if distributed processing is initialized. If a device mesh is provided,
+        it extracts the data parallel mesh and returns its process group, unless the mesh size is 1,
+        in which case it logs a warning and returns None. If no device mesh is provided, it returns
+        the world process group.
+
+        Returns:
+            ProcessGroup | None: The data parallel process group if available and valid, otherwise None.
+
+        """
+        if not dist.is_initialized():
+            return None
+
+        if self.device_mesh is not None:
+            dp_mesh = self.device_mesh["data_parallel"]
+            if dp_mesh.size() == 1:
+                logger.warning("Data parallel mesh size is 1, returning None")
+                return None
+            dp_pg = dp_mesh.get_group()
+        else:
+            dp_pg = dist.group.WORLD
+        return dp_pg
+
+    def get_model_config(self) -> PretrainedConfig | None:
+        """Retrieve the configuration of the model."""
+        if self.model is None:
+            raise ValueError("Model is not configured yet.")
+        if not hasattr(self.model, "config"):
+            return None
+        config = self.model.config
+        return config
+
+    @override
+    def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
+        config = self.get_model_config()
+        if config is not None:
+            checkpoint["config"] = config.to_dict()
+        return
+
+    @override
+    def on_before_optimizer_step(self, optimizer) -> None:
+        if self.model is None:
+            raise ValueError("Model must be configured before optimizer step.")
+        if self.hyperparams.grad_clip_val is None:
+            return
+
+        if not isinstance(self.trainer.strategy, FSDPStrategy):
+            norm = torch.nn.utils.clip_grad_norm_(
+                self.parameters(), self.hyperparams.grad_clip_val
+            )
+        else:
+            module: FSDP = self.trainer.strategy.model  # type: ignore
+            norm = module.clip_grad_norm_(self.hyperparams.grad_clip_val)
+
+        self.log(
+            "grad_norm",
+            norm,
+            logger=True,
+            sync_dist=False,
+            on_step=True,
+            on_epoch=False,
+        )
+        return
+
+    @override
+    def log_dict(
+        self,
+        dictionary: Mapping[str, Metric | torch.Tensor | int | float]
+        | MetricCollection,
+        prog_bar: bool = False,
+        logger: bool | None = None,
+        on_step: bool | None = None,
+        on_epoch: bool | None = None,
+        reduce_fx: str | Callable[..., Any] = "mean",
+        enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_group: Any | None = None,
+        add_dataloader_idx: bool = True,
+        batch_size: int | None = None,
+        rank_zero_only: bool = False,
+        stage: str | None = None,
+    ) -> None:
+        if stage is not None:
+            dictionary = apply_suffix(
+                metrics=dictionary,
+                suffix=stage,
+                add_dist_rank=False,
+            )
+        super().log_dict(
+            dictionary,
+            prog_bar,
+            logger,
+            on_step,
+            on_epoch,
+            reduce_fx,
+            enable_graph,
+            sync_dist,
+            sync_dist_group,
+            add_dataloader_idx,
+            batch_size,
+            rank_zero_only,
+        )
+        return
+
+    def log_scheduled_values(self) -> None:
+        """
+        Logs the current values from the learning rate scheduler.
+
+        This method retrieves the current value from the scheduler, applies a suffix to the keys,
+        and logs the resulting dictionary using the logger. The logging is performed on each step
+        but not on each epoch, without displaying on the progress bar or synchronizing across
+        distributed processes.
+        """
+        scheduler: BaseScheduler = self.lr_schedulers()  # type: ignore
+        if not isinstance(scheduler, BaseScheduler):
+            return
+        scheduler_state_dict = scheduler.current_value()
+        scheduler_state_dict = apply_suffix(scheduler_state_dict, "scheduler")
+        self.log_dict(
+            scheduler_state_dict,
+            prog_bar=False,
+            logger=True,
+            on_step=True,
+            on_epoch=False,
+            sync_dist=False,
+        )
+        return

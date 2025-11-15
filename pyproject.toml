@@ -78,6 +78,7 @@ ignore = [
     "N806",   # Variable in function should be lowercase
     "N803",   # Argument name should be lowercase
     "N812",   # Import alias should be lowercase
+    "N817",
 ]
 
 

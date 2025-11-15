@@ -1,5 +1,5 @@
 from .config_mixins import ConfigLoadingMixin
-from .hyperparams import Hyperparams
+from .hyperparams import HyperparamsConfig
 from .hyperparams import Lr
 from .hyperparams import Optimizer
 from .hyperparams import WeightDecay
@@ -21,7 +21,7 @@ __all__ = [
     "DataConfig",
     "EarlyStoppingConfig",
     "FSDP1StrategyConfig",
-    "Hyperparams",
+    "HyperparamsConfig",
     "Lr",
     "Optimizer",
     "SingleDeviceStrategyConfig",

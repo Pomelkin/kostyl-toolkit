@@ -75,7 +75,7 @@ class WeightDecay(BaseModel):
         return self
 
 
-class Hyperparams(ClearMLConfigMixin["Hyperparams"]):
+class HyperparamsConfig(ClearMLConfigMixin["HyperparamsConfig"]):
     """Model training hyperparameters configuration."""
 
     grad_clip_val: float | None = Field(default=None, gt=0, validate_default=False)
