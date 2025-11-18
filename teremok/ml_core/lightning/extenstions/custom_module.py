@@ -7,11 +7,11 @@ import lightning as L
 import torch
 import torch.distributed as dist
 from lightning.pytorch.strategies import FSDPStrategy
+from torch import nn
 from torch.distributed import ProcessGroup
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchmetrics import Metric
 from torchmetrics import MetricCollection
-from transformers import PretrainedConfig
 from transformers import PreTrainedModel
 
 from teremok.ml_core.configs import HyperparamsConfig
@@ -23,10 +23,10 @@ from teremok.utils import setup_logger
 logger = setup_logger()
 
 
-class TeremokLightningModule(L.LightningModule):
+class CustomLightningModule(L.LightningModule):
     """Custom PyTorch Lightning Module with logging, checkpointing, and distributed training utilities."""
 
-    model: PreTrainedModel | None
+    model: PreTrainedModel | nn.Module | None
     hyperparams: HyperparamsConfig
 
     def get_process_group(self) -> ProcessGroup | None:
@@ -55,20 +55,29 @@ class TeremokLightningModule(L.LightningModule):
             dp_pg = dist.group.WORLD
         return dp_pg
 
-    def get_model_config(self) -> PretrainedConfig | None:
-        """Retrieve the configuration of the model."""
+    def get_model(self) -> PreTrainedModel | nn.Module:
+        """Returns the underlying model."""
         if self.model is None:
-            raise ValueError("Model is not configured yet.")
-        if not hasattr(self.model, "config"):
-            return None
-        config = self.model.config
-        return config
+            raise ValueError("Model is not configured.")
+        return self.model
 
     @override
     def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
-        config = self.get_model_config()
-        if config is not None:
-            checkpoint["config"] = config.to_dict()
+        model = self.get_model()
+        if hasattr(model, "config"):
+            cfg = model.config
+            if hasattr(cfg, "to_dict"):
+                checkpoint["config"] = cfg.to_dict()  # type: ignore
+
+        if hasattr(model, "peft_config"):
+            peft_cfg = model.peft_config
+            if isinstance(peft_cfg, dict):
+                checkpoint["peft_config"] = {
+                    k: v.to_dict()
+                    for k, v in peft_cfg.items()  # type: ignore
+                }
+            else:
+                checkpoint["peft_config"] = {"default": peft_cfg.to_dict()}  # type: ignore
         return
 
     @override

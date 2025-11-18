@@ -4,6 +4,7 @@ import inspect
 import os
 import sys
 import uuid
+from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Literal
@@ -100,14 +101,20 @@ def setup_logger(
 
 
 def log_incompatible_keys(
-    logger: Logger, incompatible_keys: _IncompatibleKeys, model_specific_msg: str = ""
+    logger: Logger,
+    incompatible_keys: _IncompatibleKeys
+    | tuple[list[str], list[str]]
+    | dict[str, list[str]],
+    model_specific_msg: str = "",
 ) -> None:
     """
     Logs warnings for incompatible keys encountered during model loading or state dict operations.
 
+    Note: If incompatible_keys is of an unsupported type, an error message is logged and the function returns early.
+
     Args:
         logger (Logger): The logger instance used to output warning messages.
-        incompatible_keys (_IncompatibleKeys): An object containing lists of missing and unexpected keys.
+        incompatible_keys (_IncompatibleKeys | tuple[list[str], list[str]] | dict[str, list[str]]): An object containing lists of missing and unexpected keys.
         model_specific_msg (str, optional): A custom message to append to the log output, typically
             indicating the model or context. Defaults to an empty string.
 
@@ -115,12 +122,26 @@ def log_incompatible_keys(
         None
 
     """
-    if incompatible_keys.missing_keys:
-        logger.warning(
-            f"Missing keys {model_specific_msg}: {incompatible_keys.missing_keys}"
-        )
-    if incompatible_keys.unexpected_keys:
-        logger.warning(
-            f"Unexpected keys {model_specific_msg}: {incompatible_keys.unexpected_keys}"
-        )
+    incompatible_keys_: dict[str, list[str]] = {}
+    match incompatible_keys:
+        case (list() as missing_keys, list() as unexpected_keys):
+            incompatible_keys_ = {
+                "missing_keys": missing_keys,
+                "unexpected_keys": unexpected_keys,
+            }
+        case _IncompatibleKeys() as ik:
+            incompatible_keys_ = {
+                "missing_keys": list(ik.missing_keys),
+                "unexpected_keys": list(ik.unexpected_keys),
+            }
+        case dict() as d:
+            incompatible_keys_ = deepcopy(d)
+        case _:
+            logger.error(
+                f"Unsupported type for incompatible_keys: {type(incompatible_keys)}"
+            )
+            return
+
+    for name, keys in incompatible_keys_.items():
+        logger.warning(f"{name} {model_specific_msg}: {', '.join(keys)}")
     return

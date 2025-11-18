@@ -1,4 +1,5 @@
-from .custom_module import TeremokLightningModule
+from .extenstions import CustomLightningModule
+from .extenstions import LightningPreTrainedModelMixin
 
 
-__all__ = ["TeremokLightningModule"]
+__all__ = ["CustomLightningModule", "LightningPreTrainedModelMixin"]
