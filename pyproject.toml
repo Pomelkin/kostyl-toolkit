@@ -1,7 +1,7 @@
 [project]
-name = "teplo-toolkit"
+name = "teremok-toolkit"
 version = "0.1.0"
-description = "Add your description here"
+description = "Custom Pomelkin's utilities for ML experiments."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -18,10 +18,17 @@ dependencies = [
 dev = [
     "ipywidgets>=8.1.8",
     "notebook>=7.4.7",
+    "peft>=0.18.0",
     "pre-commit>=4.3.0",
 ]
 
+[build-system]
+requires = ["uv_build>=0.9.9,<0.10.0"]
+build-backend = "uv_build"
 
+[tool.uv.build-backend]
+module-name = "teremok"
+module-root = ""
 
 [tool.pyright]
 typeCheckingMode = "standard" # "off" | "basic" | "standard" | "strict"
