@@ -3,9 +3,9 @@ from shutil import rmtree
 
 from lightning.pytorch.callbacks import ModelCheckpoint
 
-from teremok.ml_core.configs import CheckpointConfig
-from teremok.ml_core.dist_utils import is_main_process
-from teremok.utils import setup_logger
+from kostyl.ml_core.configs import CheckpointConfig
+from kostyl.ml_core.dist_utils import is_main_process
+from kostyl.utils import setup_logger
 
 
 logger = setup_logger("callbacks/checkpoint.py")

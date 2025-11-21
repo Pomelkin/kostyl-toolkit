@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel
 from pydantic import Field
 
-from teremok.utils.logging import setup_logger
+from kostyl.utils.logging import setup_logger
 
 from .config_mixins import ClearMLConfigMixin
 from .config_mixins import ConfigLoadingMixin

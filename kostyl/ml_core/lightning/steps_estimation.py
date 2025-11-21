@@ -4,7 +4,7 @@ import lightning as L
 import torch.distributed as dist
 from torch.distributed import ProcessGroup
 
-from teremok.utils.logging import setup_logger
+from kostyl.utils.logging import setup_logger
 
 
 logger = setup_logger(add_rank=True)

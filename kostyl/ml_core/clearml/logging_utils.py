@@ -1,6 +1,6 @@
 import re
 
-from teremok.utils import setup_logger
+from kostyl.utils import setup_logger
 
 
 logger = setup_logger(name="clearml_logging_utils.py", fmt="only_message")
@@ -19,9 +19,7 @@ def increment_version(s: str) -> str:
     s = s.strip()
     m = re.fullmatch(r"v(\.?)(\d+)\.(\d+)", s)
     if not m:
-        raise ValueError(
-            f"Invalid version format: {s!r}. Expected 'vX.Y' or 'v.X.Y'."
-        )
+        raise ValueError(f"Invalid version format: {s!r}. Expected 'vX.Y' or 'v.X.Y'.")
 
     vdot, major_str, minor_str = m.groups()
     major = int(major_str)

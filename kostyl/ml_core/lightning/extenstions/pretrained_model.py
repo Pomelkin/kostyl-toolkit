@@ -11,18 +11,18 @@ try:
 except ImportError:
     PeftConfig = None
 
-from teremok.utils.logging import log_incompatible_keys
-from teremok.utils.logging import setup_logger
+from kostyl.utils.logging import log_incompatible_keys
+from kostyl.utils.logging import setup_logger
 
 
 logger = setup_logger("LightningPretrainedModelMixin", fmt="only_message")
 
 
-class LightningPreTrainedModelMixin(PreTrainedModel):
+class LightningCheckpointLoaderMixin(PreTrainedModel):
     """A mixin class for loading pretrained models from PyTorch Lightning checkpoints."""
 
     @classmethod
-    def from_lighting_checkpoint[TModelInstance: LightningPreTrainedModelMixin](  # noqa: C901
+    def from_lighting_checkpoint[TModelInstance: LightningCheckpointLoaderMixin](  # noqa: C901
         cls: type[TModelInstance],
         checkpoint_path: str | Path,
         config_key: str = "config",

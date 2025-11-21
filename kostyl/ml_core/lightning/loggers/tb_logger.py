@@ -3,8 +3,8 @@ from shutil import rmtree
 
 from lightning.pytorch.loggers import TensorBoardLogger
 
-from teremok.ml_core.dist_utils import is_main_process
-from teremok.utils.logging import setup_logger
+from kostyl.ml_core.dist_utils import is_main_process
+from kostyl.utils.logging import setup_logger
 
 
 logger = setup_logger("callbacks/tb_logger.py", add_rank=True)

@@ -6,8 +6,8 @@ from caseconverter import pascalcase
 from caseconverter import snakecase
 from pydantic import BaseModel
 
-from teremok.utils import convert_to_flat_dict
-from teremok.utils import flattened_dict_to_nested
+from kostyl.utils import convert_to_flat_dict
+from kostyl.utils import flattened_dict_to_nested
 
 
 def load_config(path: Path | str) -> dict:

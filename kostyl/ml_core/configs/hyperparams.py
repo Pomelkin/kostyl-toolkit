@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
 
-from teremok.utils.logging import setup_logger
+from kostyl.utils.logging import setup_logger
 
 from .config_mixins import ClearMLConfigMixin
 

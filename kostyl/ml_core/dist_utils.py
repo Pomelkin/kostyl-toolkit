@@ -3,8 +3,8 @@ import os
 
 import torch.distributed as dist
 
-from teremok.ml_core.configs import Lr
-from teremok.utils.logging import setup_logger
+from kostyl.ml_core.configs import Lr
+from kostyl.utils.logging import setup_logger
 
 
 logger = setup_logger(add_rank=True)

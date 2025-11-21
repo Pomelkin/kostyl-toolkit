@@ -1,6 +1,6 @@
 from lightning.pytorch.callbacks import EarlyStopping
 
-from teremok.ml_core.configs import EarlyStoppingConfig
+from kostyl.ml_core.configs import EarlyStoppingConfig
 
 
 def setup_early_stopping_callback(

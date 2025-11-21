@@ -12,18 +12,19 @@ from torch.distributed import ProcessGroup
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchmetrics import Metric
 from torchmetrics import MetricCollection
+from transformers import PretrainedConfig
 from transformers import PreTrainedModel
 
-from teremok.ml_core.configs import HyperparamsConfig
-from teremok.ml_core.metrics_formatting import apply_suffix
-from teremok.ml_core.schedulers.base import BaseScheduler
-from teremok.utils import setup_logger
+from kostyl.ml_core.configs import HyperparamsConfig
+from kostyl.ml_core.metrics_formatting import apply_suffix
+from kostyl.ml_core.schedulers.base import BaseScheduler
+from kostyl.utils import setup_logger
 
 
 logger = setup_logger()
 
 
-class CustomLightningModule(L.LightningModule):
+class KostylLightningModule(L.LightningModule):
     """Custom PyTorch Lightning Module with logging, checkpointing, and distributed training utilities."""
 
     model: PreTrainedModel | nn.Module | None
@@ -60,6 +61,14 @@ class CustomLightningModule(L.LightningModule):
         if self.model is None:
             raise ValueError("Model is not configured.")
         return self.model
+
+    @property
+    def model_config(self) -> PretrainedConfig | None:
+        """Returns the model configuration if available."""
+        model = self.get_model()
+        if hasattr(model, "config"):
+            return model.config  # type: ignore
+        return None
 
     @override
     def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
