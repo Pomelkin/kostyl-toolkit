@@ -1,13 +1,12 @@
 [project]
-name = "teremok-toolkit"
+name = "kostyl-toolkit"
 version = "0.1.0"
-description = "Custom Pomelkin's utilities for ML experiments."
+description = "Kickass Orchestration System for Training, Yielding & Logging "
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "case-converter>=1.2.0",
-    "clearml>=2.0.2",
-    "flash-attn>=2.8.3",
+    "clearml[s3]>=2.0.2",
     "lightning>=2.5.6",
     "loguru>=0.7.3",
     "pydantic>=2.12.4",
@@ -18,8 +17,11 @@ dependencies = [
 dev = [
     "ipywidgets>=8.1.8",
     "notebook>=7.4.7",
+    "pandas>=2.3.3",
     "peft>=0.18.0",
+    "polars>=1.35.2",
     "pre-commit>=4.3.0",
+    "pyarrow>=22.0.0",
 ]
 
 [build-system]
@@ -27,8 +29,14 @@ requires = ["uv_build>=0.9.9,<0.10.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "teremok"
+module-name = "kostyl"
 module-root = ""
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
 
 [tool.pyright]
 typeCheckingMode = "standard" # "off" | "basic" | "standard" | "strict"
@@ -90,7 +98,7 @@ ignore = [
 
 
 [tool.ruff.lint.isort]
-known-first-party = ["src", "app", "core"]
+known-first-party = ["src", "app", "core", "kostyl"]
 combine-as-imports = true
 force-single-line = true
 lines-after-imports = 2
