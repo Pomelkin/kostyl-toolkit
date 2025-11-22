@@ -91,7 +91,7 @@ class DataConfig(BaseModel):
     data_columns: list[str]
 
 
-class TrainingParams(ConfigLoadingMixin):
+class TrainingParams(BaseModel, ConfigLoadingMixin):
     """Training parameters configuration."""
 
     trainer: LightningTrainerParameters

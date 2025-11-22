@@ -35,7 +35,7 @@ class ConfigLoadingMixin:
 
     @classmethod
     def from_file(
-        cls: type[TConfig],  # pyright: ignore[reportGeneralTypeIssues]
+        cls: type[TConfig],  # pyright: ignore
         path: str | Path,
     ) -> TConfig:
         """
@@ -55,7 +55,7 @@ class ConfigLoadingMixin:
 
     @classmethod
     def from_dict(
-        cls: type[TConfig],  # pyright: ignore[reportGeneralTypeIssues]
+        cls: type[TConfig],  # pyright: ignore
         state_dict: dict,
     ) -> TConfig:
         """
@@ -83,7 +83,7 @@ class ClearMLConfigMixin(ConfigLoadingMixin):
 
     @classmethod
     def connect_as_file(
-        cls: type[TModel],  # pyright: ignore[reportGeneralTypeIssues]
+        cls: type[TModel],  # pyright: ignore
         task: clearml.Task,
         path: str | Path,
         alias: str | None = None,
@@ -122,7 +122,7 @@ class ClearMLConfigMixin(ConfigLoadingMixin):
 
     @classmethod
     def connect_as_dict(
-        cls: type[TModel],  # pyright: ignore[reportGeneralTypeIssues]
+        cls: type[TModel],  # pyright: ignore
         task: clearml.Task,
         path: str | Path,
         alias: str | None = None,
