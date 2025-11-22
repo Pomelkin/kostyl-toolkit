@@ -1,10 +1,11 @@
 from pathlib import Path
+from typing import TypeVar
 
 import clearml
 import yaml
 from caseconverter import pascalcase
 from caseconverter import snakecase
-from pydantic import BaseModel
+from pydantic import BaseModel as PydanticBaseModel
 
 from kostyl.utils import convert_to_flat_dict
 from kostyl.utils import flattened_dict_to_nested
@@ -26,18 +27,22 @@ def load_config(path: Path | str) -> dict:
     return config
 
 
-class ConfigLoadingMixin[TConfig: ConfigLoadingMixin](BaseModel):
+TConfig = TypeVar("TConfig", bound=PydanticBaseModel)
+
+
+class ConfigLoadingMixin:
     """Pydantic mixin class providing basic configuration loading functionality."""
 
     @classmethod
     def from_file(
-        cls: type[TConfig],
+        cls: type[TConfig],  # pyright: ignore[reportGeneralTypeIssues]
         path: str | Path,
     ) -> TConfig:
         """
         Create an instance of the class from a configuration file.
 
         Args:
+            cls_: The class type to instantiate.
             path (str | Path): Path to the configuration file.
 
         Returns:
@@ -50,13 +55,14 @@ class ConfigLoadingMixin[TConfig: ConfigLoadingMixin](BaseModel):
 
     @classmethod
     def from_dict(
-        cls: type[TConfig],
+        cls: type[TConfig],  # pyright: ignore[reportGeneralTypeIssues]
         state_dict: dict,
     ) -> TConfig:
         """
         Creates an instance from a dictionary.
 
         Args:
+            cls_: The class type to instantiate.
             state_dict (dict): A dictionary representing the state of the
                 class that must be validated and used for initialization.
 
@@ -69,16 +75,19 @@ class ConfigLoadingMixin[TConfig: ConfigLoadingMixin](BaseModel):
         return instance
 
 
-class ClearMLConfigMixin[TConfig: ClearMLConfigMixin](ConfigLoadingMixin[TConfig]):
+TModel = TypeVar("TModel", bound="ClearMLBaseModel")
+
+
+class ClearMLConfigMixin(ConfigLoadingMixin):
     """Pydantic mixin class providing ClearML configuration loading and syncing functionality."""
 
     @classmethod
     def connect_as_file(
-        cls: type[TConfig],
+        cls: type[TModel],  # pyright: ignore[reportGeneralTypeIssues]
         task: clearml.Task,
         path: str | Path,
         alias: str | None = None,
-    ) -> TConfig:
+    ) -> TModel:
         """
         Connects the configuration file to a ClearML task and creates an instance of the class from it.
 
@@ -113,11 +122,11 @@ class ClearMLConfigMixin[TConfig: ClearMLConfigMixin](ConfigLoadingMixin[TConfig
 
     @classmethod
     def connect_as_dict(
-        cls: type[TConfig],
+        cls: type[TModel],  # pyright: ignore[reportGeneralTypeIssues]
         task: clearml.Task,
         path: str | Path,
         alias: str | None = None,
-    ) -> TConfig:
+    ) -> TModel:
         """
         Connects configuration from a file as a dictionary to a ClearML task and creates an instance of the class.
 
@@ -142,5 +151,11 @@ class ClearMLConfigMixin[TConfig: ClearMLConfigMixin](ConfigLoadingMixin[TConfig
         task.connect(flattened_config, name=pascalcase(name))
         config = flattened_dict_to_nested(flattened_config)
 
-        model = cls.from_dict(config)
+        model = cls.from_dict(state_dict=config)
         return model
+
+
+class ClearMLBaseModel(PydanticBaseModel, ClearMLConfigMixin):
+    """A Pydantic model class with ClearML configuration loading and syncing functionality."""
+
+    pass

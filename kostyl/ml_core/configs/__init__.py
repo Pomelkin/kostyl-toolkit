@@ -1,4 +1,4 @@
-from .config_mixins import ConfigLoadingMixin
+from .config_base import ConfigLoadingMixin
 from .hyperparams import HyperparamsConfig
 from .hyperparams import Lr
 from .hyperparams import Optimizer

@@ -5,8 +5,8 @@ from pydantic import Field
 
 from kostyl.utils.logging import setup_logger
 
-from .config_mixins import ClearMLConfigMixin
-from .config_mixins import ConfigLoadingMixin
+from .config_base import ClearMLBaseModel
+from .config_base import ConfigLoadingMixin
 
 
 logger = setup_logger(fmt="only_message")
@@ -91,7 +91,7 @@ class DataConfig(BaseModel):
     data_columns: list[str]
 
 
-class TrainingParams(ConfigLoadingMixin["TrainingParams"]):
+class TrainingParams(ConfigLoadingMixin):
     """Training parameters configuration."""
 
     trainer: LightningTrainerParameters
@@ -102,7 +102,7 @@ class TrainingParams(ConfigLoadingMixin["TrainingParams"]):
 
 class ClearMLTrainingParameters(
     TrainingParams,
-    ClearMLConfigMixin["ClearMLTrainingParameters"],
+    ClearMLBaseModel,
 ):
     """Training parameters configuration with ClearML features support (config syncing, model identifiers tracking and etc)."""
 
