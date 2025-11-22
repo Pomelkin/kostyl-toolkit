@@ -1,33 +1,70 @@
 import math
 import os
+from typing import Literal
 
 import torch.distributed as dist
 
-from kostyl.ml_core.configs import Lr
 from kostyl.utils.logging import setup_logger
 
 
 logger = setup_logger(add_rank=True)
 
 
-def scale_lrs_by_world_size[Tlr: Lr](
-    lr_config: Tlr,
+def log_dist(msg: str, how: Literal["only-zero-rank", "world"]) -> None:
+    """
+    Log a message in a distributed environment based on the specified verbosity level.
+
+    Args:
+        msg (str): The message to log.
+        how (Literal["only-zero-rank", "world"]): The verbosity level for logging.
+            - "only-zero-rank": Log only from the main process (rank 0).
+            - "world": Log from all processes in the distributed environment.
+
+    """
+    match how:
+        case _ if not dist.is_initialized():
+            logger.warning_once(
+                "Distributed logging requested but torch.distributed is not initialized."
+            )
+            logger.info(msg)
+        case "only-zero-rank":
+            if is_main_process():
+                logger.info(msg)
+        case "world":
+            logger.info(msg)
+        case _:
+            logger.warning_once(
+                f"Invalid logging verbosity level requested: {how}. Message not logged."
+            )
+    return
+
+
+def scale_lrs_by_world_size(
+    lrs: dict[str, float],
     group: dist.ProcessGroup | None = None,
     config_name: str = "",
     inv_scale: bool = False,
-) -> Tlr:
+    verbose: Literal["only-zero-rank", "world"] | None = None,
+) -> dict[str, float]:
     """
     Scale learning-rate configuration values to match the active distributed world size.
 
+    Note:
+        The value in the `lrs` will be modified in place.
+
     Args:
-        lr_config (Lr): Learning-rate configuration whose values will be scaled.
+        lrs (dict[str, float]): A dictionary of learning rate names and their corresponding values to be scaled.
         group (dist.ProcessGroup | None): Optional process group used to determine
             the target world size. Defaults to the global process group.
         config_name (str): Human-readable identifier included in log messages.
         inv_scale (bool): If True, use the inverse square-root scale factor.
+        verbose (Literal["only-zero-rank", "world"] | None): Verbosity level for logging scaled values.
+            - "only-zero-rank": Log only from the main process (rank 0).
+            - "world": Log from all processes in the distributed environment.
+            -  None: No logging.
 
     Returns:
-        Tlr: The learning-rate configuration with scaled values.
+        dict[str, float]: The learning-rate configuration with scaled values.
 
     """
     world_size = dist.get_world_size(group=group)
@@ -37,26 +74,16 @@ def scale_lrs_by_world_size[Tlr: Lr](
     else:
         scale = math.sqrt(world_size)
 
-    logger.info(f"Scaling learning rates for world size: {world_size}")
-    logger.info(f"Scale factor: {scale:.4f}")
-    old_base = lr_config.base_value
-    lr_config.base_value *= scale
-    logger.info(f"New {config_name} lr BASE: {lr_config.base_value}; OLD: {old_base}")
-
-    if lr_config.final_value is not None:
-        old_final_value = lr_config.final_value
-        lr_config.final_value *= scale
-        logger.info(
-            f"New {config_name} lr FINAL: {lr_config.final_value}; OLD: {old_final_value}"
-        )
-
-    if lr_config.warmup_value is not None:
-        old_warmup_value = lr_config.warmup_value
-        lr_config.warmup_value *= scale
-        logger.info(
-            f"New {config_name} lr WARMUP: {lr_config.warmup_value}; OLD: {old_warmup_value}"
-        )
-    return lr_config
+    for name, value in lrs.items():
+        old_value = value
+        new_value = value * scale
+        if verbose is not None:
+            log_dist(
+                f"New {config_name} lr {name.upper()}: {new_value}; OLD: {old_value}",
+                verbose,
+            )
+        lrs[name] = new_value
+    return lrs
 
 
 def _get_rank() -> int:
