@@ -1145,14 +1145,21 @@ wheels = [
 
 [[package]]
 name = "kostyl-toolkit"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "." }
 dependencies = [
     { name = "case-converter" },
-    { name = "clearml", extra = ["s3"] },
-    { name = "lightning" },
     { name = "loguru" },
     { name = "pydantic" },
+]
+
+[package.optional-dependencies]
+train = [
+    { name = "case-converter" },
+    { name = "clearml", extra = ["s3"] },
+    { name = "lightning" },
+    { name = "pydantic" },
+    { name = "torch" },
     { name = "transformers" },
 ]
 
@@ -1166,16 +1173,28 @@ dev = [
     { name = "pre-commit" },
     { name = "pyarrow" },
 ]
+train = [
+    { name = "case-converter" },
+    { name = "clearml", extra = ["s3"] },
+    { name = "lightning" },
+    { name = "pydantic" },
+    { name = "torch" },
+    { name = "transformers" },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "case-converter", specifier = ">=1.2.0" },
-    { name = "clearml", extras = ["s3"], specifier = ">=2.0.2" },
-    { name = "lightning", specifier = ">=2.5.6" },
+    { name = "case-converter", marker = "extra == 'train'", specifier = ">=1.2.0" },
+    { name = "clearml", extras = ["s3"], marker = "extra == 'train'", specifier = ">=2.0.2" },
+    { name = "lightning", marker = "extra == 'train'", specifier = ">=2.5.6" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pydantic", specifier = ">=2.12.4" },
-    { name = "transformers", specifier = ">=4.57.1" },
+    { name = "pydantic", marker = "extra == 'train'", specifier = ">=2.12.4" },
+    { name = "torch", marker = "extra == 'train'", specifier = ">=2.9.1" },
+    { name = "transformers", marker = "extra == 'train'", specifier = ">=4.57.1" },
 ]
+provides-extras = ["train"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1186,6 +1205,14 @@ dev = [
     { name = "polars", specifier = ">=1.35.2" },
     { name = "pre-commit", specifier = ">=4.3.0" },
     { name = "pyarrow", specifier = ">=22.0.0" },
+]
+train = [
+    { name = "case-converter", specifier = ">=1.2.0" },
+    { name = "clearml", extras = ["s3"], specifier = ">=2.0.2" },
+    { name = "lightning", specifier = ">=2.5.6" },
+    { name = "pydantic", specifier = ">=2.12.4" },
+    { name = "torch", specifier = ">=2.9.1" },
+    { name = "transformers", specifier = ">=4.57.1" },
 ]
 
 [[package]]
