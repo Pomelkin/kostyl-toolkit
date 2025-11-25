@@ -3,10 +3,10 @@ from typing import Literal
 from pydantic import BaseModel
 from pydantic import Field
 
+from kostyl.ml_core.clearml.config_mixin import ClearMLConfigMixin
 from kostyl.utils.logging import setup_logger
 
-from .config_base import ClearMLBaseModel
-from .config_base import ConfigLoadingMixin
+from .base import ConfigLoadingMixin
 
 
 logger = setup_logger(fmt="only_message")
@@ -101,8 +101,8 @@ class TrainingParams(BaseModel, ConfigLoadingMixin):
 
 
 class ClearMLTrainingParameters(
+    ClearMLConfigMixin,
     TrainingParams,
-    ClearMLBaseModel,
 ):
     """Training parameters configuration with ClearML features support (config syncing, model identifiers tracking and etc)."""
 

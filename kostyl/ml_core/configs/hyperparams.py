@@ -4,7 +4,7 @@ from pydantic import model_validator
 
 from kostyl.utils.logging import setup_logger
 
-from .config_base import ClearMLBaseModel
+from .base import ClearMLBaseModel
 
 
 logger = setup_logger(fmt="only_message")
