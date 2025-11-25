@@ -1150,11 +1150,10 @@ source = { editable = "." }
 dependencies = [
     { name = "case-converter" },
     { name = "loguru" },
-    { name = "pydantic" },
 ]
 
 [package.optional-dependencies]
-train = [
+ml-core = [
     { name = "case-converter" },
     { name = "clearml", extra = ["s3"] },
     { name = "lightning" },
@@ -1173,7 +1172,7 @@ dev = [
     { name = "pre-commit" },
     { name = "pyarrow" },
 ]
-train = [
+ml-core = [
     { name = "case-converter" },
     { name = "clearml", extra = ["s3"] },
     { name = "lightning" },
@@ -1185,16 +1184,15 @@ train = [
 [package.metadata]
 requires-dist = [
     { name = "case-converter", specifier = ">=1.2.0" },
-    { name = "case-converter", marker = "extra == 'train'", specifier = ">=1.2.0" },
-    { name = "clearml", extras = ["s3"], marker = "extra == 'train'", specifier = ">=2.0.2" },
-    { name = "lightning", marker = "extra == 'train'", specifier = ">=2.5.6" },
+    { name = "case-converter", marker = "extra == 'ml-core'", specifier = ">=1.2.0" },
+    { name = "clearml", extras = ["s3"], marker = "extra == 'ml-core'", specifier = ">=2.0.2" },
+    { name = "lightning", marker = "extra == 'ml-core'", specifier = ">=2.5.6" },
     { name = "loguru", specifier = ">=0.7.3" },
-    { name = "pydantic", specifier = ">=2.12.4" },
-    { name = "pydantic", marker = "extra == 'train'", specifier = ">=2.12.4" },
-    { name = "torch", marker = "extra == 'train'", specifier = ">=2.9.1" },
-    { name = "transformers", marker = "extra == 'train'", specifier = ">=4.57.1" },
+    { name = "pydantic", marker = "extra == 'ml-core'", specifier = ">=2.12.4" },
+    { name = "torch", marker = "extra == 'ml-core'", specifier = ">=2.9.1" },
+    { name = "transformers", marker = "extra == 'ml-core'", specifier = ">=4.57.1" },
 ]
-provides-extras = ["train"]
+provides-extras = ["ml-core"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1206,7 +1204,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.3.0" },
     { name = "pyarrow", specifier = ">=22.0.0" },
 ]
-train = [
+ml-core = [
     { name = "case-converter", specifier = ">=1.2.0" },
     { name = "clearml", extras = ["s3"], specifier = ">=2.0.2" },
     { name = "lightning", specifier = ">=2.5.6" },
