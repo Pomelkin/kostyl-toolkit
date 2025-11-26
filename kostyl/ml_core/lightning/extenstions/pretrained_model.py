@@ -27,7 +27,7 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
         checkpoint_path: str | Path,
         config_key: str = "config",
         weights_prefix: str = "model.",
-        log_incompatible: bool = True,
+        should_log_incompatible_keys: bool = True,
     ) -> TModelInstance:
         """
         Load a model from a Lightning checkpoint file.
@@ -47,7 +47,7 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
                 Defaults to "config".
             weights_prefix (str, optional): Prefix to strip from state dict keys. Defaults to "model.".
                 If not empty and doesn't end with ".", a "." is appended.
-            log_incompatible (bool, optional): Whether to log incompatible keys. Defaults to True.
+            should_log_incompatible_keys (bool, optional): Whether to log incompatible keys. Defaults to True.
 
         Returns:
             TModelInstance: The loaded model instance.
@@ -110,6 +110,6 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
         )
         incompatible_keys["missing_keys"] = missing_keys
         incompatible_keys["unexpected_keys"] = unexpected_keys
-        if log_incompatible:
+        if should_log_incompatible_keys:
             log_incompatible_keys(incompatible_keys=incompatible_keys, logger=logger)
         return model
