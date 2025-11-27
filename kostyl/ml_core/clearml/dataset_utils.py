@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from pathlib import Path
@@ -26,20 +27,16 @@ def collect_clearml_datasets(
     return datasets_list
 
 
-def download_clearml_datasets(datasets_mapping: dict[str, ClearMLDataset]) -> None:
+def download_clearml_datasets(datasets: Collection[ClearMLDataset]) -> None:
     """
     Download all ClearML datasets in parallel.
 
     Args:
-        datasets_mapping: Mapping of dataset names to initialized
-            `ClearMLDataset` instances whose contents must be downloaded
-            locally.
+        datasets: Collection of initialized `ClearMLDataset` instances to download.
 
     """
     with ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(ds.get_local_copy) for ds in datasets_mapping.values()
-        ]
+        futures = [executor.submit(ds.get_local_copy) for ds in datasets]
         for future in as_completed(futures):
             future.result()
     return

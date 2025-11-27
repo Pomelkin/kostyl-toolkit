@@ -9,7 +9,7 @@ from transformers import PreTrainedModel
 try:
     from peft import PeftConfig
 except ImportError:
-    PeftConfig = None
+    PeftConfig = None  # ty: ignore
 
 from kostyl.utils.logging import log_incompatible_keys
 from kostyl.utils.logging import setup_logger

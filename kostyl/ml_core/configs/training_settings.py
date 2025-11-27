@@ -49,6 +49,7 @@ class DDPStrategyConfig(BaseModel):
     """Distributed Data Parallel (DDP) strategy configuration."""
 
     type: Literal["ddp"]
+    find_unused_parameters: bool = False
 
 
 class LightningTrainerParameters(BaseModel):
@@ -91,7 +92,7 @@ class DataConfig(BaseModel):
     data_columns: list[str]
 
 
-class TrainingParams(BaseModel, ConfigLoadingMixin):
+class TrainingSettings(BaseModel, ConfigLoadingMixin):
     """Training parameters configuration."""
 
     trainer: LightningTrainerParameters
@@ -100,9 +101,9 @@ class TrainingParams(BaseModel, ConfigLoadingMixin):
     data: DataConfig
 
 
-class ClearMLTrainingParameters(
+class ClearMLTrainingSettings(
     ClearMLConfigMixin,
-    TrainingParams,
+    TrainingSettings,
 ):
     """Training parameters configuration with ClearML features support (config syncing, model identifiers tracking and etc)."""
 

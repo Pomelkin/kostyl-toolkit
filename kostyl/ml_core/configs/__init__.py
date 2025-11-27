@@ -3,19 +3,19 @@ from .hyperparams import HyperparamsConfig
 from .hyperparams import Lr
 from .hyperparams import Optimizer
 from .hyperparams import WeightDecay
-from .training_params import CheckpointConfig
-from .training_params import ClearMLTrainingParameters
-from .training_params import DataConfig
-from .training_params import DDPStrategyConfig
-from .training_params import EarlyStoppingConfig
-from .training_params import FSDP1StrategyConfig
-from .training_params import SingleDeviceStrategyConfig
-from .training_params import TrainingParams
+from .training_settings import CheckpointConfig
+from .training_settings import ClearMLTrainingSettings
+from .training_settings import DataConfig
+from .training_settings import DDPStrategyConfig
+from .training_settings import EarlyStoppingConfig
+from .training_settings import FSDP1StrategyConfig
+from .training_settings import SingleDeviceStrategyConfig
+from .training_settings import TrainingSettings
 
 
 __all__ = [
     "CheckpointConfig",
-    "ClearMLTrainingParameters",
+    "ClearMLTrainingSettings",
     "ConfigLoadingMixin",
     "DDPStrategyConfig",
     "DataConfig",
@@ -25,6 +25,6 @@ __all__ = [
     "Lr",
     "Optimizer",
     "SingleDeviceStrategyConfig",
-    "TrainingParams",
+    "TrainingSettings",
     "WeightDecay",
 ]
