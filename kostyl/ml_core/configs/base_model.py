@@ -9,7 +9,7 @@ from kostyl.utils.fs import load_config
 TConfig = TypeVar("TConfig", bound=PydanticBaseModel)
 
 
-class ConfigLoadingMixin:
+class _ConfigLoadingMixin:
     """Pydantic mixin class providing basic configuration loading functionality."""
 
     @classmethod
@@ -52,3 +52,9 @@ class ConfigLoadingMixin:
         """
         instance = cls.model_validate(state_dict)
         return instance
+
+
+class KostylBaseModel(PydanticBaseModel, _ConfigLoadingMixin):
+    """A Pydantic model class with basic configuration loading functionality."""
+
+    pass

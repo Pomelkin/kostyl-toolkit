@@ -4,18 +4,17 @@ from typing import TypeVar
 import clearml
 from caseconverter import pascalcase
 from caseconverter import snakecase
-from pydantic import BaseModel as PydanticBaseModel
 
-from kostyl.ml_core.configs.base import ConfigLoadingMixin
+from kostyl.ml_core.configs.base_model import KostylBaseModel
 from kostyl.utils.dict_manipulations import convert_to_flat_dict
 from kostyl.utils.dict_manipulations import flattened_dict_to_nested
 from kostyl.utils.fs import load_config
 
 
-TModel = TypeVar("TModel", bound="_ClearMLBaseModel")
+TModel = TypeVar("TModel", bound="KostylBaseModel")
 
 
-class ClearMLConfigMixin(ConfigLoadingMixin):
+class ClearMLConfigMixin:
     """Pydantic mixin class providing ClearML configuration loading and syncing functionality."""
 
     @classmethod
@@ -90,9 +89,3 @@ class ClearMLConfigMixin(ConfigLoadingMixin):
 
         model = cls.from_dict(state_dict=config)
         return model
-
-
-class _ClearMLBaseModel(PydanticBaseModel, ClearMLConfigMixin):
-    """A Pydantic model class with ClearML configuration loading and syncing functionality."""
-
-    pass
