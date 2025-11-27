@@ -1,6 +1,6 @@
 [project]
 name = "kostyl-toolkit"
-version = "0.1.9"
+version = "0.1.10"
 description = "Kickass Orchestration System for Training, Yielding & Logging "
 readme = "README.md"
 requires-python = ">=3.12"

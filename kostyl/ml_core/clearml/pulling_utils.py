@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import cast
 
 from clearml import InputModel
 from clearml import Task
@@ -47,7 +48,7 @@ def get_model_from_clearml[
     model: type[TModel],
     task: Task | None = None,
     ignore_remote_overrides: bool = True,
-) -> PreTrainedModel:
+) -> TModel:
     """
     Retrieve a pretrained model from ClearML and instantiate it using the appropriate loader.
 
@@ -83,4 +84,5 @@ def get_model_from_clearml[
             f"Unsupported model format for path: {local_path}. "
             "Expected a ClearML package directory or a .ckpt file."
         )
+    model_instance = cast(TModel, model_instance)
     return model_instance
