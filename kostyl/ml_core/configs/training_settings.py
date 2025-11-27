@@ -63,6 +63,10 @@ class LightningTrainerParameters(BaseModel):
     precision: PRECISION
     log_every_n_steps: int = Field(default=50, ge=1)
     accumulate_grad_batches: int = Field(default=1, ge=1)
+    limit_train_batches: int | float | None = None
+    limit_val_batches: int | float | None = None
+    limit_test_batches: int | float | None = None
+    limit_predict_batches: int | float | None = None
 
 
 class EarlyStoppingConfig(BaseModel):

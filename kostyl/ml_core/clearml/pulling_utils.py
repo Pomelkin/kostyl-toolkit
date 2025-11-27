@@ -2,6 +2,7 @@ from pathlib import Path
 
 from clearml import InputModel
 from clearml import Task
+from transformers import AutoModel
 from transformers import AutoTokenizer
 from transformers import PreTrainedModel
 from transformers import PreTrainedTokenizerBase
@@ -39,12 +40,14 @@ def get_tokenizer_from_clearml(
     return tokenizer
 
 
-def get_model_from_clearml[TModel: PreTrainedModel | LightningCheckpointLoaderMixin](
+def get_model_from_clearml[
+    TModel: PreTrainedModel | LightningCheckpointLoaderMixin | AutoModel
+](
     model_id: str,
     model: type[TModel],
     task: Task | None = None,
     ignore_remote_overrides: bool = True,
-) -> TModel:
+) -> PreTrainedModel:
     """
     Retrieve a pretrained model from ClearML and instantiate it using the appropriate loader.
 

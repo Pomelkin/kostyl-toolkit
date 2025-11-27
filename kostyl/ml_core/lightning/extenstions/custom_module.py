@@ -21,7 +21,7 @@ from kostyl.ml_core.schedulers.base import BaseScheduler
 from kostyl.utils import setup_logger
 
 
-logger = setup_logger()
+logger = setup_logger(fmt="only_message")
 
 
 class KostylLightningModule(L.LightningModule):
@@ -93,6 +93,9 @@ class KostylLightningModule(L.LightningModule):
     def on_before_optimizer_step(self, optimizer) -> None:
         if self.model is None:
             raise ValueError("Model must be configured before optimizer step.")
+        if not hasattr(self, "hyperparams"):
+            logger.warning_once("cannot clip gradients, hyperparams attr missing")
+            return
         if self.hyperparams.grad_clip_val is None:
             return
 
