@@ -7,9 +7,9 @@ from lightning import Trainer
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.callbacks import ModelCheckpoint
 
-from kostyl.ml_core.clearml.logging_utils import find_version_in_tags
-from kostyl.ml_core.clearml.logging_utils import increment_version
-from kostyl.ml_core.lightning import KostylLightningModule
+from kostyl.ml.clearml.logging_utils import find_version_in_tags
+from kostyl.ml.clearml.logging_utils import increment_version
+from kostyl.ml.lightning import KostylLightningModule
 from kostyl.utils.logging import setup_logger
 
 

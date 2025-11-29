@@ -5,7 +5,7 @@ import clearml
 from caseconverter import pascalcase
 from caseconverter import snakecase
 
-from kostyl.ml_core.configs.base_model import KostylBaseModel
+from kostyl.ml.configs.base_model import KostylBaseModel
 from kostyl.utils.dict_manipulations import convert_to_flat_dict
 from kostyl.utils.dict_manipulations import flattened_dict_to_nested
 from kostyl.utils.fs import load_config

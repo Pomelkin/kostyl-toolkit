@@ -3,12 +3,13 @@ from typing import cast
 
 from clearml import InputModel
 from clearml import Task
+from transformers import Any
 from transformers import AutoModel
 from transformers import AutoTokenizer
 from transformers import PreTrainedModel
 from transformers import PreTrainedTokenizerBase
 
-from kostyl.ml_core.lightning.extenstions.pretrained_model import (
+from kostyl.ml.lightning.extenstions.pretrained_model import (
     LightningCheckpointLoaderMixin,
 )
 
@@ -48,6 +49,7 @@ def get_model_from_clearml[
     model: type[TModel],
     task: Task | None = None,
     ignore_remote_overrides: bool = True,
+    **kwargs: Any,
 ) -> TModel:
     """
     Retrieve a pretrained model from ClearML and instantiate it using the appropriate loader.
@@ -59,6 +61,7 @@ def get_model_from_clearml[
             will be connected to this task, with remote overrides optionally ignored.
         ignore_remote_overrides: When connecting the input model to the provided task, determines whether
             remote configuration overrides should be ignored.
+        **kwargs: Additional keyword arguments to pass to the model loading method.
 
     Returns:
         An instantiated model loaded either from a ClearML package directory or a Lightning checkpoint.
@@ -72,13 +75,13 @@ def get_model_from_clearml[
     local_path = Path(input_model.get_local_copy(raise_on_error=True))
 
     if local_path.is_dir() and input_model._is_package():
-        model_instance = model.from_pretrained(local_path)
+        model_instance = model.from_pretrained(local_path, **kwargs)
     elif local_path.suffix == ".ckpt":
         if not issubclass(model, LightningCheckpointLoaderMixin):
             raise ValueError(
                 f"Model class {model.__name__} is not compatible with Lightning checkpoints."
             )
-        model_instance = model.from_lighting_checkpoint(local_path)
+        model_instance = model.from_lighting_checkpoint(local_path, **kwargs)
     else:
         raise ValueError(
             f"Unsupported model format for path: {local_path}. "

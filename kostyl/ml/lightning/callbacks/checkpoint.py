@@ -3,8 +3,8 @@ from shutil import rmtree
 
 from lightning.pytorch.callbacks import ModelCheckpoint
 
-from kostyl.ml_core.configs import CheckpointConfig
-from kostyl.ml_core.dist_utils import is_main_process
+from kostyl.ml.configs import CheckpointConfig
+from kostyl.ml.dist_utils import is_main_process
 from kostyl.utils import setup_logger
 
 

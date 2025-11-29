@@ -15,9 +15,8 @@ from torchmetrics import MetricCollection
 from transformers import PretrainedConfig
 from transformers import PreTrainedModel
 
-from kostyl.ml_core.configs import HyperparamsConfig
-from kostyl.ml_core.metrics_formatting import apply_suffix
-from kostyl.ml_core.schedulers.base import BaseScheduler
+from kostyl.ml.metrics_formatting import apply_suffix
+from kostyl.ml.schedulers.base import BaseScheduler
 from kostyl.utils import setup_logger
 
 
@@ -28,7 +27,6 @@ class KostylLightningModule(L.LightningModule):
     """Custom PyTorch Lightning Module with logging, checkpointing, and distributed training utilities."""
 
     model: PreTrainedModel | nn.Module | None
-    hyperparams: HyperparamsConfig
 
     def get_process_group(self) -> ProcessGroup | None:
         """
@@ -70,6 +68,11 @@ class KostylLightningModule(L.LightningModule):
             return model.config  # type: ignore
         return None
 
+    @property
+    def grad_clip_val(self) -> float | None:
+        """Returns the gradient clipping value from hyperparameters if set."""
+        raise NotImplementedError
+
     @override
     def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         model = self.get_model()
@@ -93,20 +96,16 @@ class KostylLightningModule(L.LightningModule):
     def on_before_optimizer_step(self, optimizer) -> None:
         if self.model is None:
             raise ValueError("Model must be configured before optimizer step.")
-        if not hasattr(self, "hyperparams"):
-            logger.warning_once("cannot clip gradients, hyperparams attr missing")
-            return
-        if self.hyperparams.grad_clip_val is None:
+
+        grad_clip_val = self.grad_clip_val
+        if grad_clip_val is None:
             return
 
         if not isinstance(self.trainer.strategy, FSDPStrategy):
-            norm = torch.nn.utils.clip_grad_norm_(
-                self.parameters(), self.hyperparams.grad_clip_val
-            )
+            norm = torch.nn.utils.clip_grad_norm_(self.parameters(), grad_clip_val)
         else:
             module: FSDP = self.trainer.strategy.model  # type: ignore
-            norm = module.clip_grad_norm_(self.hyperparams.grad_clip_val)
-
+            norm = module.clip_grad_norm_(grad_clip_val)
         self.log(
             "grad_norm",
             norm,

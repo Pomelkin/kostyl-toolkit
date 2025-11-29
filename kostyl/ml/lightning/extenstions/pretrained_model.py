@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 from typing import cast
 
 import torch
@@ -28,6 +29,7 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
         config_key: str = "config",
         weights_prefix: str = "model.",
         should_log_incompatible_keys: bool = True,
+        **kwargs: Any,
     ) -> TModelInstance:
         """
         Load a model from a Lightning checkpoint file.
@@ -48,6 +50,7 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
             weights_prefix (str, optional): Prefix to strip from state dict keys. Defaults to "model.".
                 If not empty and doesn't end with ".", a "." is appended.
             should_log_incompatible_keys (bool, optional): Whether to log incompatible keys. Defaults to True.
+            **kwargs: Additional keyword arguments to pass to the model loading method.
 
         Returns:
             TModelInstance: The loaded model instance.
@@ -75,10 +78,17 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
         )
 
         config_cls = cast(PretrainedConfig, type(cls.config_class))
-        config = config_cls.from_dict(checkpoint_dict[config_key])
+        config_dict = checkpoint_dict[config_key]
+        config_dict.update(kwargs)
+        config = config_cls.from_dict(config_dict)
+
+        kwargs_for_model = {}
+        for key in kwargs:
+            if not hasattr(config, key):
+                kwargs_for_model[key] = kwargs[key]
 
         with torch.device("meta"):
-            model = cls(config)
+            model = cls(config, **kwargs_for_model)
 
             if "peft_config" in checkpoint_dict:
                 if PeftConfig is None:

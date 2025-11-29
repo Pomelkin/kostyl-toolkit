@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel
 from pydantic import Field
 
-from kostyl.ml_core.clearml.config_mixin import ClearMLConfigMixin
+from kostyl.ml.clearml.config_mixin import ClearMLConfigMixin
 from kostyl.utils.logging import setup_logger
 
 from .base_model import KostylBaseModel

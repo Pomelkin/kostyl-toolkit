@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
 
-from kostyl.ml_core.clearml.config_mixin import ClearMLConfigMixin
+from kostyl.ml.clearml.config_mixin import ClearMLConfigMixin
 from kostyl.utils.logging import setup_logger
 
 

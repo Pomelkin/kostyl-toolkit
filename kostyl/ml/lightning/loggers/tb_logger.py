@@ -3,7 +3,7 @@ from shutil import rmtree
 
 from lightning.pytorch.loggers import TensorBoardLogger
 
-from kostyl.ml_core.dist_utils import is_main_process
+from kostyl.ml.dist_utils import is_main_process
 from kostyl.utils.logging import setup_logger
 
 
