@@ -4,7 +4,6 @@ from .hyperparams import Lr
 from .hyperparams import Optimizer
 from .hyperparams import WeightDecay
 from .training_settings import CheckpointConfig
-from .training_settings import ClearMLTrainingSettings
 from .training_settings import DataConfig
 from .training_settings import DDPStrategyConfig
 from .training_settings import EarlyStoppingConfig
@@ -16,7 +15,6 @@ from .training_settings import TrainingSettings
 
 __all__ = [
     "CheckpointConfig",
-    "ClearMLTrainingSettings",
     "DDPStrategyConfig",
     "DataConfig",
     "EarlyStoppingConfig",

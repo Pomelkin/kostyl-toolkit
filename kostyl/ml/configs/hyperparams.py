@@ -2,8 +2,9 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
 
-from kostyl.ml.clearml.config_mixin import ClearMLConfigMixin
 from kostyl.utils.logging import setup_logger
+
+from .base_model import KostylBaseModel
 
 
 logger = setup_logger(fmt="only_message")
@@ -74,7 +75,7 @@ class WeightDecay(BaseModel):
         return self
 
 
-class HyperparamsConfig(BaseModel, ClearMLConfigMixin):
+class HyperparamsConfig(KostylBaseModel):
     """Model training hyperparameters configuration."""
 
     grad_clip_val: float | None = Field(default=None, gt=0, validate_default=False)

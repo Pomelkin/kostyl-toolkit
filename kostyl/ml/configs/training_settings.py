@@ -3,7 +3,6 @@ from typing import Literal
 from pydantic import BaseModel
 from pydantic import Field
 
-from kostyl.ml.clearml.config_mixin import ClearMLConfigMixin
 from kostyl.utils.logging import setup_logger
 
 from .base_model import KostylBaseModel
@@ -103,13 +102,3 @@ class TrainingSettings(KostylBaseModel):
     early_stopping: EarlyStoppingConfig | None = None
     checkpoint: CheckpointConfig
     data: DataConfig
-
-
-class ClearMLTrainingSettings(
-    TrainingSettings,
-    ClearMLConfigMixin,
-):
-    """Training parameters configuration with ClearML features support (config syncing, model identifiers tracking and etc)."""
-
-    model_id: str
-    tokenizer_id: str
