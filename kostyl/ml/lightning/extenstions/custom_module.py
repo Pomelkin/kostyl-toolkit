@@ -26,8 +26,6 @@ logger = setup_logger(fmt="only_message")
 class KostylLightningModule(L.LightningModule):
     """Custom PyTorch Lightning Module with logging, checkpointing, and distributed training utilities."""
 
-    model: PreTrainedModel | nn.Module | None
-
     def get_process_group(self) -> ProcessGroup | None:
         """
         Retrieves the data parallel process group for distributed training.
@@ -54,16 +52,15 @@ class KostylLightningModule(L.LightningModule):
             dp_pg = dist.group.WORLD
         return dp_pg
 
-    def get_model(self) -> PreTrainedModel | nn.Module:
+    @property
+    def model_instance(self) -> PreTrainedModel | nn.Module:
         """Returns the underlying model."""
-        if self.model is None:
-            raise ValueError("Model is not configured.")
-        return self.model
+        raise NotImplementedError
 
     @property
     def model_config(self) -> PretrainedConfig | None:
         """Returns the model configuration if available."""
-        model = self.get_model()
+        model = self.model_instance
         if hasattr(model, "config"):
             return model.config  # type: ignore
         return None
@@ -75,7 +72,7 @@ class KostylLightningModule(L.LightningModule):
 
     @override
     def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
-        model = self.get_model()
+        model = self.model_instance
         if hasattr(model, "config"):
             cfg = model.config
             if hasattr(cfg, "to_dict"):
@@ -94,9 +91,6 @@ class KostylLightningModule(L.LightningModule):
 
     @override
     def on_before_optimizer_step(self, optimizer) -> None:
-        if self.model is None:
-            raise ValueError("Model must be configured before optimizer step.")
-
         grad_clip_val = self.grad_clip_val
         if grad_clip_val is None:
             return
