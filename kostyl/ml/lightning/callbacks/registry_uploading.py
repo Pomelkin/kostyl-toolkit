@@ -78,6 +78,27 @@ class ClearMLRegistryUploaderCallback(Callback):
         )
         return output_model
 
+    def _upload_best_checkpoint(self, pl_module: KostylLightningModule) -> None:
+        if self._output_model is None:
+            self._output_model = self._create_output_model(pl_module)
+
+        if self.ckpt_callback.best_model_path == self._last_best_model_path:
+            if self.verbose and (self._last_best_model_path != ""):
+                logger.info("Best model unchanged since last upload")
+            elif self.verbose:
+                logger.info("No best model found yet to upload")
+        else:
+            if self.verbose:
+                logger.info(
+                    f"Uploading best model from {self.ckpt_callback.best_model_path}"
+                )
+            self._output_model.update_weights(
+                self.ckpt_callback.best_model_path,
+                auto_delete_file=False,
+                async_enable=False,
+            )
+        return
+
     @override
     def on_validation_epoch_end(
         self, trainer: Trainer, pl_module: KostylLightningModule
@@ -86,41 +107,12 @@ class ClearMLRegistryUploaderCallback(Callback):
             self.uploading_frequency != "after-every-eval"
         ):
             return
-        if self._output_model is None:
-            self._output_model = self._create_output_model(pl_module)
-
-        if self.ckpt_callback.best_model_path != self._last_best_model_path:
-            if self.verbose:
-                logger.info(f"Best model path: {self.ckpt_callback.best_model_path}")
-            self._output_model.update_weights(
-                self.ckpt_callback.best_model_path,
-                auto_delete_file=False,
-                async_enable=True,
-            )
-            self._last_best_model_path = self.ckpt_callback.best_model_path
-        elif self.verbose:
-            logger.info("Best model path: unchanged since last upload, skipping...")
+        self._upload_best_checkpoint(pl_module)
         return
 
     @override
     def on_train_end(self, trainer: Trainer, pl_module: KostylLightningModule) -> None:
         if not trainer.is_global_zero:
             return
-        if self._output_model is None:
-            self._output_model = self._create_output_model(pl_module)
-
-        if self.ckpt_callback.best_model_path != self._last_best_model_path:
-            if self.verbose:
-                logger.info(
-                    f"Best model path at the end of training: {self.ckpt_callback.best_model_path}"
-                )
-            self._output_model.update_weights(
-                self.ckpt_callback.best_model_path,
-                auto_delete_file=False,
-                async_enable=False,
-            )
-        elif self.verbose:
-            logger.info(
-                "Best model path at the end of training: unchanged since last upload, skipping..."
-            )
+        self._upload_best_checkpoint(pl_module)
         return

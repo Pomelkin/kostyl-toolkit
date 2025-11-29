@@ -100,5 +100,5 @@ class TrainingSettings(KostylBaseModel):
 
     trainer: LightningTrainerParameters
     early_stopping: EarlyStoppingConfig | None = None
-    checkpoint: CheckpointConfig
+    checkpoint: CheckpointConfig = CheckpointConfig()
     data: DataConfig
