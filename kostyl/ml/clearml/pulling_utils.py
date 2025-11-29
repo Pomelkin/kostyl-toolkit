@@ -19,7 +19,7 @@ def get_tokenizer_from_clearml(
     task: Task | None = None,
     ignore_remote_overrides: bool = True,
     name: str | None = None,
-) -> PreTrainedTokenizerBase:
+) -> tuple[PreTrainedTokenizerBase, InputModel]:
     """
     Retrieve a Hugging Face tokenizer stored in a ClearML.
 
@@ -33,8 +33,8 @@ def get_tokenizer_from_clearml(
             (default to filename of the model weights, without the file extension, or to Input Model if that is not found)
 
     Returns:
-        PreTrainedTokenizerBase: The instantiated tokenizer loaded from the local copy
-            of the referenced ClearML InputModel.
+        The instantiated tokenizer loaded from the local copy
+            of the referenced ClearML InputModel and the ClearML InputModel instance.
 
     """
     clearml_tokenizer = InputModel(model_id=model_id)
@@ -58,7 +58,7 @@ def get_model_from_clearml[
     ignore_remote_overrides: bool = True,
     name: str | None = None,
     **kwargs: Any,
-) -> TModel:
+) -> tuple[TModel, InputModel]:
     """
     Retrieve a pretrained model from ClearML and instantiate it using the appropriate loader.
 
@@ -68,14 +68,13 @@ def get_model_from_clearml[
         task: Optional ClearML task used to resolve the input model reference. If provided, the input model
             will be connected to this task, with remote overrides optionally ignored.
         ignore_remote_overrides: When connecting the input model to the provided task,
-        determines whether
-            remote configuration overrides should be ignored.
+            determines whether remote configuration overrides should be ignored.
         name: The model name to be stored on the Task
             (default to filename of the model weights, without the file extension, or to Input Model if that is not found)
         **kwargs: Additional keyword arguments to pass to the model loading method.
 
     Returns:
-        An instantiated model loaded either from a ClearML package directory or a Lightning checkpoint.
+        The instantiated model and the ClearML InputModel instance.
 
     """
     input_model = InputModel(model_id=model_id)
@@ -103,4 +102,4 @@ def get_model_from_clearml[
             "Expected a ClearML package directory or a .ckpt file."
         )
     model_instance = cast(TModel, model_instance)
-    return model_instance
+    return model_instance, input_model
