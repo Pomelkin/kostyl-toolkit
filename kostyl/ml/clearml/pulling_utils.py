@@ -1,9 +1,9 @@
 from pathlib import Path
+from typing import Any
 from typing import cast
 
 from clearml import InputModel
 from clearml import Task
-from transformers import Any
 from transformers import AutoModel
 from transformers import AutoTokenizer
 from transformers import PreTrainedModel
