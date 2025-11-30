@@ -46,7 +46,7 @@ def get_tokenizer_from_clearml(
     tokenizer = AutoTokenizer.from_pretrained(
         clearml_tokenizer.get_local_copy(raise_on_error=True)
     )
-    return tokenizer
+    return tokenizer, clearml_tokenizer
 
 
 def get_model_from_clearml[
