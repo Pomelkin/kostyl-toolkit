@@ -96,4 +96,12 @@ def _get_rank() -> int:
 
 def is_main_process() -> bool:
     """Checks if the current process is the main process (rank 0) in a distributed setting."""
-    return _get_rank() == 0
+    if dist.is_initialized():
+        return dist.get_rank() == 0
+    if "RANK" in os.environ:
+        return int(os.environ["RANK"]) == 0
+    if "SLURM_PROCID" in os.environ:
+        return int(os.environ["SLURM_PROCID"]) == 0
+    if "LOCAL_RANK" in os.environ:
+        return int(os.environ["LOCAL_RANK"]) == 0
+    return True

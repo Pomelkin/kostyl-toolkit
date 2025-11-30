@@ -7,7 +7,7 @@ from kostyl.ml.dist_utils import is_main_process
 from kostyl.utils.logging import setup_logger
 
 
-logger = setup_logger("callbacks/tb_logger.py", add_rank=True)
+logger = setup_logger()
 
 
 def setup_tb_logger(
