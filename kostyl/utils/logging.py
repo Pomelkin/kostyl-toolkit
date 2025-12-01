@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import inspect
-import os
 import sys
 import uuid
+from collections import namedtuple
 from copy import deepcopy
 from functools import partialmethod
 from pathlib import Path
@@ -13,7 +13,6 @@ from typing import Literal
 from typing import cast
 
 from loguru import logger as _base_logger
-from torch.nn.modules.module import _IncompatibleKeys
 
 
 if TYPE_CHECKING:
@@ -27,6 +26,9 @@ else:
 
 try:
     import torch.distributed as dist
+    from torch.nn.modules.module import (
+        _IncompatibleKeys,  # pyright: ignore[reportAssignmentType]
+    )
 except Exception:
 
     class _Dummy:
@@ -38,7 +40,24 @@ except Exception:
         def is_initialized() -> bool:
             return False
 
+        @staticmethod
+        def get_rank() -> int:
+            return 0
+
+    class _IncompatibleKeys(
+        namedtuple("IncompatibleKeys", ["missing_keys", "unexpected_keys"]),
+    ):
+        __slots__ = ()
+
+        def __repr__(self) -> str:
+            if not self.missing_keys and not self.unexpected_keys:
+                return "<All keys matched successfully>"
+            return super().__repr__()
+
+        __str__ = __repr__
+
     dist = _Dummy()
+    _IncompatibleKeys = _IncompatibleKeys
 
 _once_lock = Lock()
 _once_keys: set[tuple[str, str]] = set()
@@ -106,7 +125,7 @@ def setup_logger(
             add_rank = False
 
     if add_rank:
-        rank = int(os.environ.get("RANK", "0"))
+        rank = dist.get_rank()
         channel = f"rank:{rank} - {base}"
     else:
         channel = base
