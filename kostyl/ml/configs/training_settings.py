@@ -5,8 +5,6 @@ from pydantic import Field
 
 from kostyl.utils.logging import setup_logger
 
-from .base_model import KostylBaseModel
-
 
 logger = setup_logger(fmt="only_message")
 
@@ -95,7 +93,7 @@ class DataConfig(BaseModel):
     data_columns: list[str]
 
 
-class TrainingSettings(KostylBaseModel):
+class TrainingSettings(BaseModel):
     """Training parameters configuration."""
 
     trainer: LightningTrainerParameters

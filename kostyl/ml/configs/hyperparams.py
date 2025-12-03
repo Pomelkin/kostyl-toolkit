@@ -4,8 +4,6 @@ from pydantic import model_validator
 
 from kostyl.utils.logging import setup_logger
 
-from .base_model import KostylBaseModel
-
 
 logger = setup_logger(fmt="only_message")
 
@@ -75,7 +73,7 @@ class WeightDecay(BaseModel):
         return self
 
 
-class HyperparamsConfig(KostylBaseModel):
+class HyperparamsConfig(BaseModel):
     """Model training hyperparameters configuration."""
 
     grad_clip_val: float | None = Field(default=None, gt=0, validate_default=False)

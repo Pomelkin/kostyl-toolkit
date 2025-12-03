@@ -118,7 +118,7 @@ def setup_logger(
     else:
         base = name
 
-    if add_rank is None:
+    if (add_rank is None) or add_rank:
         try:
             add_rank = dist.is_available() and dist.is_initialized()
         except Exception:
