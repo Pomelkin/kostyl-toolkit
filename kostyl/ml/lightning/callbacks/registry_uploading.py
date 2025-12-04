@@ -27,6 +27,8 @@ class ClearMLRegistryUploaderCallback(Callback):
         output_model_tags: list[str] | None = None,
         verbose: bool = True,
         enable_tag_versioning: bool = True,
+        label_enumeration: dict[str, int] | None = None,
+        config_dict: dict[str, str] | None = None,
         uploading_frequency: Literal[
             "after-every-eval", "on-train-end"
         ] = "on-train-end",
@@ -40,6 +42,8 @@ class ClearMLRegistryUploaderCallback(Callback):
             output_model_name: Name for the ClearML output model.
             output_model_tags: Tags for the output model.
             verbose: Whether to log messages.
+            label_enumeration: Optional mapping of label names to integer IDs.
+            config_dict: Optional configuration dictionary to associate with the model.
             enable_tag_versioning: Whether to enable versioning in tags. If True,
                 the version tag (e.g., "v1.0") will be automatically incremented or if not present, added as "v1.0".
             uploading_frequency: When to upload:
@@ -55,6 +59,8 @@ class ClearMLRegistryUploaderCallback(Callback):
         self.ckpt_callback = ckpt_callback
         self.output_model_name = output_model_name
         self.output_model_tags = output_model_tags
+        self.config_dict = config_dict
+        self.label_enumeration = label_enumeration
         self.verbose = verbose
         self.uploading_frequency = uploading_frequency
         self.enable_tag_versioning = enable_tag_versioning
@@ -75,16 +81,21 @@ class ClearMLRegistryUploaderCallback(Callback):
 
         if "LightningCheckpoint" not in self.output_model_tags:
             self.output_model_tags.append("LightningCheckpoint")
-        config = pl_module.model_config
-        if config is not None:
-            config = config.to_dict()
+
+        if self.config_dict is None:
+            config = pl_module.model_config
+            if config is not None:
+                config = config.to_dict()
+        else:
+            config = self.config_dict
 
         return OutputModel(
             task=self.task,
             name=self.output_model_name,
             framework="PyTorch",
             tags=self.output_model_tags,
-            config_dict=config,
+            config_dict=None,
+            label_enumeration=self.label_enumeration,
         )
 
     def _upload_best_checkpoint(self, pl_module: "KostylLightningModule") -> None:
@@ -111,6 +122,13 @@ class ClearMLRegistryUploaderCallback(Callback):
             auto_delete_file=False,
             async_enable=False,
         )
+        if self.config_dict is None:
+            config = pl_module.model_config
+            if config is not None:
+                config = config.to_dict()
+        else:
+            config = self.config_dict
+        self._output_model.update_design(config_dict=config)
 
         self._last_best_model_path = current_best
         return
