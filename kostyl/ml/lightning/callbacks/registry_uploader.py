@@ -1,3 +1,7 @@
+from abc import ABC
+from abc import abstractmethod
+from collections.abc import Callable
+from functools import partial
 from typing import Literal
 from typing import override
 
@@ -5,7 +9,6 @@ from clearml import OutputModel
 from clearml import Task
 from lightning import Trainer
 from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.callbacks import ModelCheckpoint
 
 from kostyl.ml.clearml.logging_utils import find_version_in_tags
 from kostyl.ml.clearml.logging_utils import increment_version
@@ -16,13 +19,31 @@ from kostyl.utils.logging import setup_logger
 logger = setup_logger()
 
 
-class ClearMLRegistryUploaderCallback(Callback):
+class RegistryUploaderCallback(Callback, ABC):
+    """Abstract Lightning callback responsible for tracking and uploading the best-performing model checkpoint."""
+
+    @property
+    @abstractmethod
+    def best_model_path(self) -> str:
+        """Return the file system path pointing to the best model artifact produced during training."""
+        raise NotImplementedError
+
+    @best_model_path.setter
+    @abstractmethod
+    def best_model_path(self, value: str) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def _upload_best_checkpoint(self, pl_module: "KostylLightningModule") -> None:
+        raise NotImplementedError
+
+
+class ClearMLRegistryUploaderCallback(RegistryUploaderCallback):
     """PyTorch Lightning callback to upload the best model checkpoint to ClearML."""
 
     def __init__(
         self,
         task: Task,
-        ckpt_callback: ModelCheckpoint,
         output_model_name: str,
         output_model_tags: list[str] | None = None,
         verbose: bool = True,
@@ -56,7 +77,6 @@ class ClearMLRegistryUploaderCallback(Callback):
             output_model_tags = []
 
         self.task = task
-        self.ckpt_callback = ckpt_callback
         self.output_model_name = output_model_name
         self.output_model_tags = output_model_tags
         self.config_dict = config_dict
@@ -66,7 +86,22 @@ class ClearMLRegistryUploaderCallback(Callback):
         self.enable_tag_versioning = enable_tag_versioning
 
         self._output_model: OutputModel | None = None
-        self._last_best_model_path: str = ""
+        self._last_uploaded_model_path: str = ""
+        self._best_model_path: str = ""
+        self._upload_callback: Callable | None = None
+        return
+
+    @property
+    @override
+    def best_model_path(self) -> str:
+        return self._best_model_path
+
+    @best_model_path.setter
+    @override
+    def best_model_path(self, value: str) -> None:
+        self._best_model_path = value
+        if self._upload_callback is not None:
+            self._upload_callback()
         return
 
     def _create_output_model(self, pl_module: "KostylLightningModule") -> OutputModel:
@@ -98,27 +133,29 @@ class ClearMLRegistryUploaderCallback(Callback):
             label_enumeration=self.label_enumeration,
         )
 
+    @override
     def _upload_best_checkpoint(self, pl_module: "KostylLightningModule") -> None:
-        current_best = self.ckpt_callback.best_model_path
-
-        if not current_best:
-            if self.verbose:
-                logger.info("No best model found yet to upload")
+        if not self._best_model_path or (
+            self._best_model_path == self._last_uploaded_model_path
+        ):
+            if not self._best_model_path:
+                if self.verbose:
+                    logger.info("No best model found yet to upload")
+            elif self._best_model_path == self._last_uploaded_model_path:
+                if self.verbose:
+                    logger.info("Best model unchanged since last upload")
+            self._upload_callback = partial(self._upload_best_checkpoint, pl_module)
             return
-
-        if current_best == self._last_best_model_path:
-            if self.verbose:
-                logger.info("Best model unchanged since last upload")
-            return
+        self._upload_callback = None
 
         if self._output_model is None:
             self._output_model = self._create_output_model(pl_module)
 
         if self.verbose:
-            logger.info(f"Uploading best model from {current_best}")
+            logger.info(f"Uploading best model from {self._best_model_path}")
 
         self._output_model.update_weights(
-            current_best,
+            self._best_model_path,
             auto_delete_file=False,
             async_enable=False,
         )
@@ -130,7 +167,7 @@ class ClearMLRegistryUploaderCallback(Callback):
             config = self.config_dict
         self._output_model.update_design(config_dict=config)
 
-        self._last_best_model_path = current_best
+        self._last_uploaded_model_path = self._best_model_path
         return
 
     @override
