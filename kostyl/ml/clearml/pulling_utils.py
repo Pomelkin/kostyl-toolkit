@@ -95,7 +95,7 @@ def get_model_from_clearml[
             raise ValueError(
                 f"Model class {model.__name__} is not compatible with Lightning checkpoints."
             )
-        model_instance = model.from_lighting_checkpoint(local_path, **kwargs)
+        model_instance = model.from_lightning_checkpoint(local_path, **kwargs)
     else:
         raise ValueError(
             f"Unsupported model format for path: {local_path}. "
