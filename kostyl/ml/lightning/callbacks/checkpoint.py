@@ -2,7 +2,6 @@ from datetime import timedelta
 from pathlib import Path
 from shutil import rmtree
 from typing import Literal
-from typing import cast
 
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -244,6 +243,8 @@ class CustomModelCheckpoint(ModelCheckpoint):
         enable_version_counter: bool = True,
         registry_uploader_callback: RegistryUploaderCallback | None = None,
     ) -> None:
+        self.registry_uploader_callback = registry_uploader_callback
+        self._custom_best_model_path = ""
         super().__init__(
             dirpath=dirpath,
             filename=filename,
@@ -261,8 +262,6 @@ class CustomModelCheckpoint(ModelCheckpoint):
             save_on_train_epoch_end=save_on_train_epoch_end,
             enable_version_counter=enable_version_counter,
         )
-        self.registry_uploader_callback = registry_uploader_callback
-        self._custom_best_model_path = cast(str, self.best_model_path)
         return
 
     @property
