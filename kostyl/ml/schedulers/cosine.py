@@ -11,20 +11,18 @@ from .base import BaseScheduler
 class _CosineSchedulerCore(BaseScheduler):
     def __init__(
         self,
-        param_group_field: str,
-        total_iters: int,
-        base_value: float,
+        param_name: str,
+        num_iters: int,
+        start_value: float,
         final_value: float,
-        warmup_iters_ratio: float | None = None,
+        warmup_ratio: float | None = None,
         warmup_value: float | None = None,
         freeze_ratio: float | None = None,
     ) -> None:
-        if warmup_iters_ratio is not None:
-            if not (0 < warmup_iters_ratio < 1):
-                raise ValueError(
-                    f"Warmup ratio must be in (0, 1), got {warmup_iters_ratio}."
-                )
-        if (warmup_value is None) != (warmup_iters_ratio is None):
+        if warmup_ratio is not None:
+            if not (0 < warmup_ratio < 1):
+                raise ValueError(f"Warmup ratio must be in (0, 1), got {warmup_ratio}.")
+        if (warmup_value is None) != (warmup_ratio is None):
             raise ValueError(
                 "Both warmup_ratio and warmup_value must be provided or neither."
             )
@@ -32,46 +30,46 @@ class _CosineSchedulerCore(BaseScheduler):
             if not (0 < freeze_ratio < 1):
                 raise ValueError(f"Freeze ratio must be in (0, 1), got {freeze_ratio}.")
 
-        self.param_group_field = param_group_field
-        self.total_iters = total_iters
-        self.base_value = base_value
+        self.param_name = param_name
+        self.num_iters = num_iters
+        self.start_value = start_value
         self.final_value = final_value
 
-        self.warmup_iters_ratio = warmup_iters_ratio
+        self.warmup_ratio = warmup_ratio
         self.warmup_value = warmup_value
 
         self.freeze_ratio = freeze_ratio
 
         self.scheduler_values: npt.NDArray[np.float64] = np.array([], dtype=np.float64)
-        self.current_value_ = self.base_value
+        self.current_value_ = self.start_value
         return
 
     def _create_scheduler(self) -> None:
         # Create freeze schedule
         if self.freeze_ratio is not None:
-            freeze_iters = int(self.total_iters * self.freeze_ratio)
+            freeze_iters = int(self.num_iters * self.freeze_ratio)
             freeze_schedule = np.zeros(freeze_iters, dtype=np.float64)
         else:
             freeze_iters = 0
             freeze_schedule = np.array([], dtype=np.float64)
 
         # Create linear warmup schedule
-        if self.warmup_iters_ratio is not None and self.warmup_value is not None:
-            warmup_iters = int(self.total_iters * self.warmup_iters_ratio)
+        if self.warmup_ratio is not None and self.warmup_value is not None:
+            warmup_iters = int(self.num_iters * self.warmup_ratio)
             warmup_schedule = np.linspace(
-                self.warmup_value, self.base_value, warmup_iters, dtype=np.float64
+                self.warmup_value, self.start_value, warmup_iters, dtype=np.float64
             )
         else:
             warmup_iters = 0
             warmup_schedule = np.array([], dtype=np.float64)
 
-        cosine_annealing_iters = self.total_iters - warmup_iters - freeze_iters
+        cosine_annealing_iters = self.num_iters - warmup_iters - freeze_iters
         if cosine_annealing_iters <= 0:
             raise ValueError("Cosine annealing iters must be > 0.")
 
         # Create cosine schedule
         iters = np.arange(cosine_annealing_iters)
-        schedule = self.final_value + 0.5 * (self.base_value - self.final_value) * (
+        schedule = self.final_value + 0.5 * (self.start_value - self.final_value) * (
             1 + np.cos(np.pi * iters / len(iters))
         )
 
@@ -80,9 +78,9 @@ class _CosineSchedulerCore(BaseScheduler):
             (freeze_schedule, warmup_schedule, schedule)
         )
 
-        if len(self.scheduler_values) != self.total_iters:
+        if len(self.scheduler_values) != self.num_iters:
             raise ValueError(
-                f"Scheduler length ({len(self.scheduler_values)}) does not match total_iters ({self.total_iters})."
+                f"Scheduler length ({len(self.scheduler_values)}) does not match num_iters ({self.num_iters})."
             )
         return
 
@@ -100,7 +98,7 @@ class _CosineSchedulerCore(BaseScheduler):
         if len(self.scheduler_values) == 0:
             self._create_scheduler()
 
-        if it >= self.total_iters:
+        if it >= self.num_iters:
             value: float = self.final_value
         else:
             value: float = self.scheduler_values[it]
@@ -109,20 +107,20 @@ class _CosineSchedulerCore(BaseScheduler):
 
     @override
     def current_value(self) -> dict[str, float]:
-        return {self.param_group_field: self.current_value_}
+        return {self.param_name: self.current_value_}
 
 
 class CosineScheduler(_CosineSchedulerCore):
-    """Implements a cosine scheduler for adjusting parameter values in torch.optim.Optimizer."""
+    """Applies a cosine schedule to an optimizer param-group field."""
 
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
         param_group_field: str,
-        total_iters: int,
-        base_value: float,
+        num_iters: int,
+        start_value: float,
         final_value: float,
-        warmup_iters_ratio: float | None = None,
+        warmup_ratio: float | None = None,
         warmup_value: float | None = None,
         freeze_ratio: float | None = None,
         multiplier_field: str | None = None,
@@ -131,21 +129,21 @@ class CosineScheduler(_CosineSchedulerCore):
         ignore_if_field: str | None = None,
     ) -> None:
         """
-        Initialize the scheduler with optimizer and scheduling parameters.
+        Configure cosine scheduling for matching optimizer groups.
 
         Args:
-            optimizer: PyTorch optimizer to schedule parameters for.
-            param_group_field: Name of the parameter group field to modify (e.g., 'lr', 'weight_decay').
-            total_iters: Total number of iterations for the scheduling.
-            base_value: Initial value for the parameter.
-            final_value: Final value for the parameter at the end of scheduling.
-            warmup_iters_ratio: Ratio of total iterations to use for warmup phase. Defaults to None.
-            warmup_value: Value to use during warmup phase. Defaults to None.
-            freeze_ratio: Ratio of total iterations to freeze parameter updates. Defaults to None.
-            multiplier_field: Field name for multiplier values in parameter groups. Defaults to None.
-            skip_if_zero: Whether to skip scheduling if the parameter value is zero. Defaults to False.
-            apply_if_field: Field name that must be present to apply scheduling. Defaults to None.
-            ignore_if_field: Field name that when present causes scheduling to be ignored. Defaults to None.
+            optimizer: Optimizer whose param groups are updated in-place.
+            param_group_field: Name of the field that receives the scheduled value.
+            num_iters: Number of scheduler iterations before clamping at ``final_value``.
+            start_value: Value used on the first cosine step (after warmup/freeze).
+            final_value: Value approached as iterations progress.
+            warmup_ratio: Optional fraction of iterations to linearly ramp from ``warmup_value`` to ``start_value``.
+            warmup_value: Starting value for the warmup ramp.
+            freeze_ratio: Optional fraction of iterations to keep the value frozen at zero at the beginning.
+            multiplier_field: Optional per-group multiplier applied to the scheduled value.
+            skip_if_zero: Leave groups untouched when their target field equals zero.
+            apply_if_field: Require this flag to be present in a param group before updating.
+            ignore_if_field: Skip groups that declare this flag.
 
         """
         self.apply_if_field = apply_if_field
@@ -154,14 +152,15 @@ class CosineScheduler(_CosineSchedulerCore):
         self.multiplier_field = multiplier_field
         self.skip_if_zero = skip_if_zero
         super().__init__(
-            param_group_field=param_group_field,
-            total_iters=total_iters,
-            base_value=base_value,
+            param_name=param_group_field,
+            num_iters=num_iters,
+            start_value=start_value,
             final_value=final_value,
-            warmup_iters_ratio=warmup_iters_ratio,
+            warmup_ratio=warmup_ratio,
             warmup_value=warmup_value,
             freeze_ratio=freeze_ratio,
         )
+        self.param_group_field = param_group_field
         return
 
     @override
@@ -194,14 +193,7 @@ class CosineScheduler(_CosineSchedulerCore):
 
 
 class CosineParamScheduler(_CosineSchedulerCore):
-    """
-    CosineParamScheduler adjusts a parameter value using a cosine annealing scheduler.
-
-    This class provides a mechanism to schedule the value of a parameter over a
-    predefined number of iterations. It supports linear warm-up and optional freezing
-    periods before the cosine annealing wave begins. The scheduler can be used to
-    gradually transition a parameter value from a starting value to a final value.
-    """
+    """Standalone cosine scheduler for non-optimizer parameters."""
 
     @override
     def step(self, it: int) -> float:

@@ -23,21 +23,17 @@ class Lr(BaseModel):
         default=None, gt=0, lt=1, validate_default=False
     )
     warmup_value: float | None = Field(default=None, gt=0, validate_default=False)
-    base_value: float
+    start_value: float
     final_value: float | None = Field(default=None, gt=0, validate_default=False)
 
     @model_validator(mode="after")
     def validate_warmup(self) -> "Lr":
         """Validates the warmup parameters based on use_scheduler."""
-        if (self.warmup_value is None) != (
-            self.warmup_iters_ratio is None
-        ) and self.use_scheduler:
+        if (self.warmup_value is None) != (self.warmup_iters_ratio is None):  # fmt: skip
             raise ValueError(
                 "Both warmup_value and warmup_iters_ratio must be provided or neither"
             )
-        elif (
-            (self.warmup_value is not None) or (self.warmup_iters_ratio is not None)
-        ) and (not self.use_scheduler):
+        if ((self.warmup_value is not None) or (self.warmup_iters_ratio is not None)) and not self.use_scheduler:  # fmt: skip
             logger.warning(
                 "use_scheduler is False, warmup_value and warmup_iters_ratio will be ignored."
             )
@@ -60,7 +56,7 @@ class WeightDecay(BaseModel):
     """Weight decay hyperparameters configuration."""
 
     use_scheduler: bool = False
-    base_value: float
+    start_value: float
     final_value: float | None = None
 
     @model_validator(mode="after")
