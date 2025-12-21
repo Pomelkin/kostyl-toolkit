@@ -13,7 +13,7 @@ class _CosineSchedulerCore(BaseScheduler):
         self,
         param_name: str,
         num_iters: int,
-        start_value: float,
+        base_value: float,
         final_value: float,
         warmup_ratio: float | None = None,
         warmup_value: float | None = None,
@@ -32,7 +32,7 @@ class _CosineSchedulerCore(BaseScheduler):
 
         self.param_name = param_name
         self.num_iters = num_iters
-        self.start_value = start_value
+        self.base_value = base_value
         self.final_value = final_value
 
         self.warmup_ratio = warmup_ratio
@@ -41,7 +41,7 @@ class _CosineSchedulerCore(BaseScheduler):
         self.freeze_ratio = freeze_ratio
 
         self.scheduler_values: npt.NDArray[np.float64] = np.array([], dtype=np.float64)
-        self.current_value_ = self.start_value
+        self.current_value_ = self.base_value
         return
 
     def _create_scheduler(self) -> None:
@@ -57,7 +57,7 @@ class _CosineSchedulerCore(BaseScheduler):
         if self.warmup_ratio is not None and self.warmup_value is not None:
             warmup_iters = int(self.num_iters * self.warmup_ratio)
             warmup_schedule = np.linspace(
-                self.warmup_value, self.start_value, warmup_iters, dtype=np.float64
+                self.warmup_value, self.base_value, warmup_iters, dtype=np.float64
             )
         else:
             warmup_iters = 0
@@ -69,7 +69,7 @@ class _CosineSchedulerCore(BaseScheduler):
 
         # Create cosine schedule
         iters = np.arange(cosine_annealing_iters)
-        schedule = self.final_value + 0.5 * (self.start_value - self.final_value) * (
+        schedule = self.final_value + 0.5 * (self.base_value - self.final_value) * (
             1 + np.cos(np.pi * iters / len(iters))
         )
 
@@ -118,7 +118,7 @@ class CosineScheduler(_CosineSchedulerCore):
         optimizer: torch.optim.Optimizer,
         param_group_field: str,
         num_iters: int,
-        start_value: float,
+        base_value: float,
         final_value: float,
         warmup_ratio: float | None = None,
         warmup_value: float | None = None,
@@ -135,9 +135,9 @@ class CosineScheduler(_CosineSchedulerCore):
             optimizer: Optimizer whose param groups are updated in-place.
             param_group_field: Name of the field that receives the scheduled value.
             num_iters: Number of scheduler iterations before clamping at ``final_value``.
-            start_value: Value used on the first cosine step (after warmup/freeze).
+            base_value: Value used on the first cosine step (after warmup/freeze).
             final_value: Value approached as iterations progress.
-            warmup_ratio: Optional fraction of iterations to linearly ramp from ``warmup_value`` to ``start_value``.
+            warmup_ratio: Optional fraction of iterations to linearly ramp from ``warmup_value`` to ``base_value``.
             warmup_value: Starting value for the warmup ramp.
             freeze_ratio: Optional fraction of iterations to keep the value frozen at zero at the beginning.
             multiplier_field: Optional per-group multiplier applied to the scheduled value.
@@ -154,7 +154,7 @@ class CosineScheduler(_CosineSchedulerCore):
         super().__init__(
             param_name=param_group_field,
             num_iters=num_iters,
-            start_value=start_value,
+            base_value=base_value,
             final_value=final_value,
             warmup_ratio=warmup_ratio,
             warmup_value=warmup_value,

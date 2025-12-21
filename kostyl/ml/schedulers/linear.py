@@ -13,21 +13,21 @@ class _LinearScheduleBase(BaseScheduler):
         self,
         param_name: str,
         num_iters: int,
-        start_value: float,
+        base_value: float,
         final_value: float,
     ) -> None:
         self.param_name = param_name
         self.num_iters = num_iters
-        self.start_value = start_value
+        self.base_value = base_value
         self.final_value = final_value
 
         self.scheduler_values: npt.NDArray[np.float64] = np.array([], dtype=np.float64)
-        self.current_value_ = self.start_value
+        self.current_value_ = self.base_value
         return
 
     def _create_scheduler(self) -> None:
         self.scheduler_values = np.linspace(
-            self.start_value, self.final_value, num=self.num_iters, dtype=np.float64
+            self.base_value, self.final_value, num=self.num_iters, dtype=np.float64
         )
         if len(self.scheduler_values) != self.num_iters:
             raise ValueError(
@@ -69,7 +69,7 @@ class LinearScheduler(_LinearScheduleBase):
         optimizer: torch.optim.Optimizer,
         param_group_field: str,
         num_iters: int,
-        start_value: float,
+        base_value: float,
         final_value: float,
         multiplier_field: str | None = None,
         skip_if_zero: bool = False,
@@ -83,7 +83,7 @@ class LinearScheduler(_LinearScheduleBase):
             optimizer: Optimizer whose param groups are updated in-place.
             param_group_field: Name of the field that receives the scheduled value.
             num_iters: Number of scheduler iterations before clamping at ``final_value``.
-            start_value: Value used on the first iteration.
+            base_value: Value used on the first iteration.
             final_value: Value used once ``num_iters`` iterations are consumed.
             multiplier_field: Optional per-group multiplier applied to the scheduled value.
             skip_if_zero: Leave groups untouched when their target field equals zero.
@@ -99,7 +99,7 @@ class LinearScheduler(_LinearScheduleBase):
         super().__init__(
             param_name=param_group_field,
             num_iters=num_iters,
-            start_value=start_value,
+            base_value=base_value,
             final_value=final_value,
         )
         self.param_group_field = param_group_field

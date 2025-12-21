@@ -23,7 +23,7 @@ class Lr(BaseModel):
         default=None, gt=0, lt=1, validate_default=False
     )
     warmup_value: float | None = Field(default=None, gt=0, validate_default=False)
-    start_value: float
+    base_value: float
     final_value: float | None = Field(default=None, gt=0, validate_default=False)
 
     @model_validator(mode="after")
@@ -56,7 +56,7 @@ class WeightDecay(BaseModel):
     """Weight decay hyperparameters configuration."""
 
     use_scheduler: bool = False
-    start_value: float
+    base_value: float
     final_value: float | None = None
 
     @model_validator(mode="after")
