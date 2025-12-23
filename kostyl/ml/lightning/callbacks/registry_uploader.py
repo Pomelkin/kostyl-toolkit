@@ -69,6 +69,8 @@ class ClearMLRegistryUploaderCallback(RegistryUploaderCallback):
         self._output_model: OutputModel | None = None
         self._last_uploaded_model_path: str = ""
         self._upload_callback: Callable | None = None
+
+        self._design_updated: bool = False
         return
 
     def _create_output_model(self) -> OutputModel:
@@ -116,7 +118,9 @@ class ClearMLRegistryUploaderCallback(RegistryUploaderCallback):
             auto_delete_file=False,
             async_enable=False,
         )
-        self._output_model.update_design(config_dict=self.config_dict)
+        if not self._design_updated and self.config_dict is not None:
+            self._output_model.update_design(config_dict=self.config_dict)
+            self._design_updated = True
 
         self._last_uploaded_model_path = path
         return
