@@ -9,7 +9,7 @@ from transformers import AutoTokenizer
 from transformers import PreTrainedModel
 from transformers import PreTrainedTokenizerBase
 
-from kostyl.ml.lightning.extenstions.pretrained_model import (
+from kostyl.ml.lightning.extensions.pretrained_model import (
     LightningCheckpointLoaderMixin,
 )
 

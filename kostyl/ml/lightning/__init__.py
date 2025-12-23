@@ -1,5 +1,5 @@
-from .extenstions import KostylLightningModule
-from .extenstions import LightningCheckpointLoaderMixin
+from .extensions import KostylLightningModule
+from .extensions import LightningCheckpointLoaderMixin
 
 
 __all__ = ["KostylLightningModule", "LightningCheckpointLoaderMixin"]
