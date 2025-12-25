@@ -20,11 +20,16 @@ from kostyl.ml.schedulers.base import BaseScheduler
 from kostyl.utils import setup_logger
 
 
-logger = setup_logger(fmt="only_message")
+module_logger = setup_logger(fmt="only_message")
 
 
 class KostylLightningModule(L.LightningModule):
     """Custom PyTorch Lightning Module with logging, checkpointing, and distributed training utilities."""
+
+    @property
+    def process_group(self) -> ProcessGroup | None:
+        """Returns the data parallel process group for distributed training."""
+        return self.get_process_group()
 
     def get_process_group(self) -> ProcessGroup | None:
         """
@@ -45,7 +50,7 @@ class KostylLightningModule(L.LightningModule):
         if self.device_mesh is not None:
             dp_mesh = self.device_mesh["data_parallel"]
             if dp_mesh.size() == 1:
-                logger.warning("Data parallel mesh size is 1, returning None")
+                module_logger.warning("Data parallel mesh size is 1, returning None")
                 return None
             dp_pg = dp_mesh.get_group()
         else:
@@ -129,11 +134,16 @@ class KostylLightningModule(L.LightningModule):
         stage: str | None = None,
     ) -> None:
         if stage is not None:
-            dictionary = apply_suffix(
-                metrics=dictionary,
-                suffix=stage,
-                add_dist_rank=False,
-            )
+            if not isinstance(dictionary, MetricCollection):
+                dictionary = apply_suffix(
+                    metrics=dictionary,
+                    suffix=stage,
+                    add_dist_rank=False,
+                )
+            else:
+                module_logger.warning_once(
+                    "Stage suffixing for MetricCollection is not implemented. Skipping suffixing."
+                )
         super().log_dict(
             dictionary,
             prog_bar,
@@ -161,9 +171,12 @@ class KostylLightningModule(L.LightningModule):
         """
         scheduler: BaseScheduler = self.lr_schedulers()  # type: ignore
         if not isinstance(scheduler, BaseScheduler):
+            module_logger.warning_once(
+                "Scheduler is not an instance of BaseScheduler. Skipping scheduled values logging."
+            )
             return
         scheduler_state_dict = scheduler.current_value()
-        scheduler_state_dict = apply_suffix(scheduler_state_dict, "scheduler")
+        scheduler_state_dict = apply_suffix(scheduler_state_dict, "scheduled")
         self.log_dict(
             scheduler_state_dict,
             prog_bar=False,

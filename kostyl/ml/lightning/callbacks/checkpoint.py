@@ -12,9 +12,8 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from kostyl.ml.configs import CheckpointConfig
 from kostyl.ml.dist_utils import is_main_process
 from kostyl.ml.lightning import KostylLightningModule
+from kostyl.ml.registry_uploader import RegistryUploaderCallback
 from kostyl.utils import setup_logger
-
-from .registry_uploader import RegistryUploaderCallback
 
 
 logger = setup_logger("callbacks/checkpoint.py")

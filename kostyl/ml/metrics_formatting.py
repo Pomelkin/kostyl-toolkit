@@ -3,14 +3,13 @@ from collections.abc import Mapping
 import torch.distributed as dist
 from torch import Tensor
 from torchmetrics import Metric
-from torchmetrics import MetricCollection
 
 
 def apply_suffix(
-    metrics: Mapping[str, Metric | Tensor | int | float] | MetricCollection,
+    metrics: Mapping[str, Metric | Tensor | int | float],
     suffix: str,
     add_dist_rank: bool = False,
-) -> Mapping[str, Metric | Tensor | int | float] | MetricCollection:
+) -> Mapping[str, Metric | Tensor | int | float]:
     """Add stage prefix to metric names."""
     new_metrics_dict = {}
     for key, value in metrics.items():
