@@ -16,15 +16,6 @@ repos:
   - id: detect-private-key
   - id: debug-statements
 
-# - repo: https://github.com/asottile/reorder-python-imports
-#   rev: v3.16.0
-#   hooks:
-#   - id: reorder-python-imports
-#     args:
-#     - --py312-plus
-#     - --application-directories=.:core
-#     types_or: [ python, pyi ]
-
 - repo: https://github.com/asottile/pyupgrade
   rev: v3.21.0
   hooks:
@@ -46,8 +37,13 @@ repos:
 
   - id: ruff
     name: ruff isort
-    types_or: [ python, pyi ]
+    types_or: [ python, pyi, jupyter ]
     args: [ "check", "--select", "I", "--fix" ]
+
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.4.1
+  hooks:
+  - id: codespell
 
 - repo: https://github.com/astral-sh/uv-pre-commit
   rev: 0.9.7
@@ -60,6 +56,15 @@ repos:
   hooks:
   - id: hadolint-docker
     types_or: [ dockerfile ]
+
+- repo: https://github.com/docker-compose-linter/pre-commit-dclint
+  rev: v3.0.0 # Matches the dclint version, use the sha or tag you want to point at
+  hooks:
+    - id: dclint
+      # Optional: regex override for compose files
+      files: ^(docker-)?compose\.ya?ml$
+      # Optional: enable autofix on commit
+      args: [ --fix ]
 
 # - repo: https://github.com/hoxbro/clean_notebook
 #   rev: v0.1.17
