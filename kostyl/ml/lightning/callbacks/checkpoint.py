@@ -301,7 +301,7 @@ def setup_checkpoint_callback(
     ckpt_cfg: CheckpointConfig,
     save_weights_only: bool = True,
     registry_uploader_callback: RegistryUploaderCallback | None = None,
-    uploading_mode: Literal["only-best", "every-checkpoint"] | None = None,
+    uploading_strategy: Literal["only-best", "every-checkpoint"] | None = None,
 ) -> ModelCheckpointWithRegistryUploader | ModelCheckpoint:
     """
     Create and configure a checkpoint callback for model saving.
@@ -316,8 +316,8 @@ def setup_checkpoint_callback(
         save_weights_only: If True, only model weights are saved without optimizer and lr-scheduler state.
             Defaults to True.
         registry_uploader_callback: Optional callback for uploading checkpoints to a remote registry.
-            Must be specified together with uploading_mode.
-        uploading_mode: Checkpoint upload mode:
+            Must be specified together with uploading_strategy.
+        uploading_strategy: Checkpoint upload mode:
             - "only-best": only the best checkpoint is uploaded
             - "every-checkpoint": every saved checkpoint is uploaded
             Must be specified together with registry_uploader_callback.
@@ -334,7 +334,7 @@ def setup_checkpoint_callback(
         (only on the main process in distributed training).
 
     """
-    if (registry_uploader_callback is None) != (uploading_mode is None):
+    if (registry_uploader_callback is None) != (uploading_strategy is None):
         raise ValueError(
             "Both registry_uploader_callback and uploading_mode must be provided or neither."
         )
@@ -348,7 +348,7 @@ def setup_checkpoint_callback(
         logger.info(f"Creating checkpoint directory {dirpath}.")
         dirpath.mkdir(parents=True, exist_ok=True)
 
-    if (registry_uploader_callback is not None) and (uploading_mode is not None):
+    if (registry_uploader_callback is not None) and (uploading_strategy is not None):
         checkpoint_callback = ModelCheckpointWithRegistryUploader(
             dirpath=dirpath,
             filename=ckpt_cfg.filename,
@@ -358,7 +358,7 @@ def setup_checkpoint_callback(
             verbose=True,
             save_weights_only=save_weights_only,
             registry_uploader_callback=registry_uploader_callback,
-            uploading_mode=uploading_mode,
+            uploading_mode=uploading_strategy,
         )
     else:
         checkpoint_callback = ModelCheckpoint(

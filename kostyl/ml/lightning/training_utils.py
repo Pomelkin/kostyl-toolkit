@@ -98,9 +98,9 @@ def setup_callbacks(
     task: Task,
     root_path: Path,
     checkpoint_cfg: CheckpointConfig,
-    uploading_mode: Literal["only-best", "every-checkpoint"],
+    early_stopping_cfg: EarlyStoppingConfig | None,
     output_model: OutputModel,
-    early_stopping_cfg: EarlyStoppingConfig | None = None,
+    checkpoint_upload_strategy: Literal["only-best", "every-checkpoint"],
     config_dict: dict[str, str] | None = None,
     enable_tag_versioning: bool = False,
 ) -> Callbacks:
@@ -114,7 +114,7 @@ def setup_callbacks(
         task: ClearML task for organizing checkpoints by task name and ID.
         root_path: Root directory for saving checkpoints.
         checkpoint_cfg: Configuration for checkpoint saving behavior.
-        uploading_mode: Model upload strategy:
+        checkpoint_upload_strategy: Model upload strategy:
             - `"only-best"`: Upload only the best checkpoint based on monitored metric.
             - `"every-checkpoint"`: Upload every saved checkpoint.
         output_model: ClearML OutputModel instance for model registry integration.
@@ -143,7 +143,7 @@ def setup_callbacks(
         root_path / "checkpoints" / task.name / task.id,
         checkpoint_cfg,
         registry_uploader_callback=model_uploader,
-        uploading_mode=uploading_mode,
+        uploading_strategy=checkpoint_upload_strategy,
     )
     if early_stopping_cfg is not None:
         early_stopping_callback = setup_early_stopping_callback(early_stopping_cfg)
