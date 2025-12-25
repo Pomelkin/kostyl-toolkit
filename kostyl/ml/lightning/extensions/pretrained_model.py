@@ -20,7 +20,8 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
         cls: type[TModelInstance],
         checkpoint_path: str | Path,
         config_key: str = "config",
-        weights_prefix: str = "model.",
+        weights_prefix: str | None = "model.",
+        strict_prefix: bool = False,
         **kwargs: Any,
     ) -> TModelInstance:
         """
@@ -39,8 +40,10 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
             checkpoint_path (str | Path): Path to the checkpoint file. Must be a .ckpt file.
             config_key (str, optional): Key in the checkpoint dictionary where the config is stored.
                 Defaults to "config".
-            weights_prefix (str, optional): Prefix to strip from state dict keys. Defaults to "model.".
-                If not empty and doesn't end with ".", a "." is appended.
+            weights_prefix (str | None, optional): Prefix to strip from state dict keys. Defaults to "model.".
+                If not empty and doesn't end with ".", a "." is appended. If empty or None, no prefix stripping will be skipped.
+            strict_prefix (bool, optional): If True, drop tensors those keys that do not start with the
+                specified prefix. Defaults to False.
             kwargs: Additional keyword arguments to pass to the model's `from_pretrained` method.
 
         Returns:
@@ -53,6 +56,13 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
         """
         if isinstance(checkpoint_path, str):
             checkpoint_path = Path(checkpoint_path)
+        if weights_prefix is None:
+            weights_prefix = ""
+        weights_prefix = cast(str, weights_prefix)
+        if weights_prefix == "" and strict_prefix:
+            logger.warning(
+                "strict_prefix=True has no effect when weights_prefix is empty or None."
+            )
 
         if checkpoint_path.is_dir():
             raise ValueError(f"{checkpoint_path} is a directory")
@@ -85,13 +95,25 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
             if not weights_prefix.endswith("."):
                 weights_prefix = weights_prefix + "."
             state_dict: dict[str, torch.Tensor] = {}
-
+            matched_keys_counter = 0
             for key, value in raw_state_dict.items():
                 if key.startswith(weights_prefix):
                     new_key = key[len(weights_prefix) :]
                     state_dict[new_key] = value
-                else:
+                    matched_keys_counter += 1
+                elif not strict_prefix:
                     state_dict[key] = value
+
+            if matched_keys_counter == 0:
+                if strict_prefix:
+                    raise ValueError(
+                        f"No keys in the checkpoint start with the specified prefix '{weights_prefix}'. "
+                        "Try to load with `strict_prefix=False` or verify the prefix."
+                    )
+                else:
+                    logger.warning(
+                        f"No keys in the checkpoint start with the specified prefix '{weights_prefix}'. "
+                    )
         else:
             state_dict = raw_state_dict
 
