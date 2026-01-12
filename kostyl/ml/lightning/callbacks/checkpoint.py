@@ -299,9 +299,9 @@ class ModelCheckpointWithRegistryUploader(ModelCheckpoint):
 def setup_checkpoint_callback(
     dirpath: Path,
     ckpt_cfg: CheckpointConfig,
-    save_weights_only: bool = True,
     registry_uploader_callback: RegistryUploaderCallback | None = None,
     uploading_strategy: Literal["only-best", "every-checkpoint"] | None = None,
+    remove_folder_if_exists: bool = True,
 ) -> ModelCheckpointWithRegistryUploader | ModelCheckpoint:
     """
     Create and configure a checkpoint callback for model saving.
@@ -313,14 +313,13 @@ def setup_checkpoint_callback(
     Args:
         dirpath: Path to the directory for saving checkpoints.
         ckpt_cfg: Checkpoint configuration (filename, monitor, mode, save_top_k).
-        save_weights_only: If True, only model weights are saved without optimizer and lr-scheduler state.
-            Defaults to True.
         registry_uploader_callback: Optional callback for uploading checkpoints to a remote registry.
             Must be specified together with uploading_strategy.
         uploading_strategy: Checkpoint upload mode:
             - "only-best": only the best checkpoint is uploaded
             - "every-checkpoint": every saved checkpoint is uploaded
             Must be specified together with registry_uploader_callback.
+        remove_folder_if_exists: If True, removes existing checkpoint directory before creating a new one.
 
     Returns:
         ModelCheckpointWithRegistryUploader if registry_uploader_callback is provided,
@@ -331,7 +330,7 @@ def setup_checkpoint_callback(
 
     Note:
         If the dirpath directory already exists, it will be removed and recreated
-        (only on the main process in distributed training).
+        (only on the main process in distributed training) if remove_folder_if_exists is True.
 
     """
     if (registry_uploader_callback is None) != (uploading_strategy is None):
@@ -342,8 +341,9 @@ def setup_checkpoint_callback(
     if dirpath.exists():
         if is_main_process():
             logger.warning(f"Checkpoint directory {dirpath} already exists.")
-            rmtree(dirpath)
-            logger.warning(f"Removed existing checkpoint directory {dirpath}.")
+            if remove_folder_if_exists:
+                rmtree(dirpath)
+                logger.warning(f"Removed existing checkpoint directory {dirpath}.")
     else:
         logger.info(f"Creating checkpoint directory {dirpath}.")
         dirpath.mkdir(parents=True, exist_ok=True)
@@ -356,7 +356,7 @@ def setup_checkpoint_callback(
             monitor=ckpt_cfg.monitor,
             mode=ckpt_cfg.mode,
             verbose=True,
-            save_weights_only=save_weights_only,
+            save_weights_only=ckpt_cfg.save_weights_only,
             registry_uploader_callback=registry_uploader_callback,
             uploading_mode=uploading_strategy,
         )
@@ -368,6 +368,6 @@ def setup_checkpoint_callback(
             monitor=ckpt_cfg.monitor,
             mode=ckpt_cfg.mode,
             verbose=True,
-            save_weights_only=save_weights_only,
+            save_weights_only=ckpt_cfg.save_weights_only,
         )
     return checkpoint_callback

@@ -25,21 +25,31 @@ PRECISION = Literal[
     "16",
     "bf16",
 ]
-
-
-class FSDP1StrategyConfig(BaseModel):
-    """Fully Sharded Data Parallel (FSDP) strategy configuration."""
-
-    type: Literal["fsdp1"]
-    param_dtype: Literal["float32", "float16", "bfloat16"]
-    reduce_dtype: Literal["float32", "float16", "bfloat16"]
-    buffer_dtype: Literal["float32", "float16", "bfloat16"]
+DTYPE = Literal["float32", "float16", "bfloat16", "float64"]
 
 
 class SingleDeviceStrategyConfig(BaseModel):
     """Single device strategy configuration."""
 
     type: Literal["single_device"]
+
+
+class FSDP1StrategyConfig(BaseModel):
+    """Fully Sharded Data Parallel (FSDP) strategy configuration."""
+
+    type: Literal["fsdp1"]
+    param_dtype: DTYPE | None
+    reduce_dtype: DTYPE | None
+    buffer_dtype: DTYPE | None
+
+
+class FSDP2StrategyConfig(BaseModel):
+    """Fully Sharded Data Parallel (FSDP) strategy configuration."""
+
+    type: Literal["fsdp2"]
+    param_dtype: DTYPE | None
+    reduce_dtype: DTYPE | None
+    buffer_dtype: DTYPE | None
 
 
 class DDPStrategyConfig(BaseModel):
@@ -82,6 +92,7 @@ class CheckpointConfig(BaseModel):
     monitor: str = "val_loss"
     mode: str = "min"
     filename: str = "{epoch:02d}-{val_loss:.2f}"
+    save_weights_only: bool = True
 
 
 class DataConfig(BaseModel):

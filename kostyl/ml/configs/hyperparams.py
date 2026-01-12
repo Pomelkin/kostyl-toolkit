@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
@@ -8,11 +10,25 @@ from kostyl.utils.logging import setup_logger
 logger = setup_logger(fmt="only_message")
 
 
-class Optimizer(BaseModel):
-    """Optimizer hyperparameters configuration."""
+class AdamConfig(BaseModel):
+    """AdamW optimizer hyperparameters configuration."""
 
-    adamw_beta1: float = 0.9
-    adamw_beta2: float = 0.999
+    type: Literal["AdamW"] = "AdamW"
+    betas: tuple[float, float] = (0.9, 0.999)
+    is_adamw: bool = True
+
+
+class AdamWithPrecisionConfig(BaseModel):
+    """Adam optimizer with low-precision hyperparameters configuration."""
+
+    type: Literal["Adam8bit", "Adam4bit", "AdamFp8"]
+    betas: tuple[float, float] = (0.9, 0.999)
+    block_size: int
+    bf16_stochastic_round: bool = False
+    is_adamw: bool = True
+
+
+Optimizer = AdamConfig | AdamWithPrecisionConfig
 
 
 class Lr(BaseModel):
@@ -73,6 +89,6 @@ class HyperparamsConfig(BaseModel):
     """Model training hyperparameters configuration."""
 
     grad_clip_val: float | None = Field(default=None, gt=0, validate_default=False)
-    optimizer: Optimizer = Optimizer()
+    optimizer: Optimizer
     lr: Lr
     weight_decay: WeightDecay
