@@ -10,7 +10,7 @@ from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import ModelCheckpoint
 
 from kostyl.ml.configs import CheckpointConfig
-from kostyl.ml.dist_utils import is_main_process
+from kostyl.ml.dist_utils import is_local_zero_rank
 from kostyl.ml.lightning import KostylLightningModule
 from kostyl.ml.registry_uploader import RegistryUploaderCallback
 from kostyl.utils import setup_logger
@@ -339,7 +339,7 @@ def setup_checkpoint_callback(
         )
 
     if dirpath.exists():
-        if is_main_process():
+        if is_local_zero_rank():
             logger.warning(f"Checkpoint directory {dirpath} already exists.")
             if remove_folder_if_exists:
                 rmtree(dirpath)

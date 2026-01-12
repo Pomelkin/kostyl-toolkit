@@ -14,7 +14,7 @@ TRAINING_STRATEGIES = (
     FSDP1StrategyConfig | DDPStrategyConfig | SingleDeviceStrategyConfig
 )
 
-logger = setup_logger(add_rank=True)
+logger = setup_logger()
 
 
 def estimate_total_steps(

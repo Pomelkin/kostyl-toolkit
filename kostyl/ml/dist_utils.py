@@ -4,38 +4,61 @@ from typing import Literal
 
 import torch.distributed as dist
 
+from kostyl.utils.logging import KostylLogger
 from kostyl.utils.logging import setup_logger
 
 
-logger = setup_logger(add_rank=True)
+module_logger = setup_logger()
 
 
-def log_dist(msg: str, how: Literal["only-zero-rank", "world"]) -> None:
+def log_dist(
+    msg: str,
+    logger: KostylLogger | None = None,
+    level: Literal["info", "warning", "error", "warning_once", "debug"] = "info",
+    log_scope: Literal["only-zero-rank", "world"] = "world",
+    group: dist.ProcessGroup | None = None,
+) -> None:
     """
     Log a message in a distributed environment based on the specified verbosity level.
 
     Args:
         msg (str): The message to log.
-        how (Literal["only-zero-rank", "world"]): The verbosity level for logging.
+        log_scope (Literal["only-zero-rank", "world"]): The verbosity level for logging.
             - "only-zero-rank": Log only from the main process (rank 0).
             - "world": Log from all processes in the distributed environment.
+        logger (KostylLogger | None): The logger instance to use. If None, the module logger is used.
+        level (Literal["info", "warning", "error", "warning_once", "debug"]): The logging level.
+        group (dist.ProcessGroup | None): Optional process group used to determine ranks. Defaults to the global process group.
 
     """
-    match how:
-        case _ if not dist.is_initialized():
-            logger.warning_once(
-                "Distributed logging requested but torch.distributed is not initialized."
-            )
-            logger.info(msg)
+    if logger is None:
+        logger = module_logger
+
+    log_attr = getattr(logger, level, None)
+    if log_attr is None:
+        raise ValueError(f"Invalid logging level: {level}")
+
+    if not dist.is_initialized():
+        module_logger.warning_once(
+            "Distributed process group is not initialized; logging from all ranks."
+        )
+        log_attr(msg)
+        return
+
+    match log_scope:
         case "only-zero-rank":
-            if is_main_process():
-                logger.info(msg)
+            if group is None:
+                module_logger.debug(
+                    "No process group provided; assuming global group for rank check."
+                )
+                group = dist.group.WORLD
+            group_rank = dist.get_rank(group=group)
+            if dist.get_global_rank(group=group, group_rank=group_rank) == 0:  # pyright: ignore[reportArgumentType]
+                log_attr(msg)
         case "world":
-            logger.info(msg)
+            log_attr(msg)
         case _:
-            logger.warning_once(
-                f"Invalid logging verbosity level requested: {how}. Message not logged."
-            )
+            raise ValueError(f"Invalid logging verbosity level: {log_scope}")
     return
 
 
@@ -44,7 +67,7 @@ def scale_lrs_by_world_size(
     group: dist.ProcessGroup | None = None,
     config_name: str = "",
     inv_scale: bool = False,
-    verbose: Literal["only-zero-rank", "world"] | None = None,
+    verbose_level: Literal["only-zero-rank", "world"] | None = None,
 ) -> dict[str, float]:
     """
     Scale learning-rate configuration values to match the active distributed world size.
@@ -58,7 +81,7 @@ def scale_lrs_by_world_size(
             the target world size. Defaults to the global process group.
         config_name (str): Human-readable identifier included in log messages.
         inv_scale (bool): If True, use the inverse square-root scale factor.
-        verbose (Literal["only-zero-rank", "world"] | None): Verbosity level for logging scaled values.
+        verbose_level (Literal["only-zero-rank", "world"] | None): Verbosity level for logging scaled values.
             - "only-zero-rank": Log only from the main process (rank 0).
             - "world": Log from all processes in the distributed environment.
             -  None: No logging.
@@ -77,31 +100,30 @@ def scale_lrs_by_world_size(
     for name, value in lrs.items():
         old_value = value
         new_value = value * scale
-        if verbose is not None:
+        if verbose_level is not None:
             log_dist(
                 f"New {config_name} lr {name.upper()}: {new_value}; OLD: {old_value}",
-                verbose,
+                log_scope=verbose_level,
+                group=group,
             )
         lrs[name] = new_value
     return lrs
 
 
-def get_rank() -> int:
-    """Gets the rank of the current process in a distributed setting."""
-    if dist.is_initialized():
-        return dist.get_rank()
-    if "RANK" in os.environ:
-        return int(os.environ["RANK"])
-    if "SLURM_PROCID" in os.environ:
-        return int(os.environ["SLURM_PROCID"])
+def get_local_rank(group: dist.ProcessGroup | None = None) -> int:
+    """Gets the local rank of the current process in a distributed setting."""
+    if dist.is_initialized() and group is not None:
+        return dist.get_rank(group=group)
+    if "SLURM_LOCALID" in os.environ:
+        return int(os.environ["SLURM_LOCALID"])
     if "LOCAL_RANK" in os.environ:
         return int(os.environ["LOCAL_RANK"])
     return 0
 
 
-def is_main_process() -> bool:
-    """Checks if the current process is the main process (rank 0) in a distributed setting."""
-    rank = get_rank()
+def is_local_zero_rank() -> bool:
+    """Checks if the current process is the main process (rank 0) for the local node in a distributed setting."""
+    rank = get_local_rank()
     if rank != 0:
         return False
     return True

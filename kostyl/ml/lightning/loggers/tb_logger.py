@@ -3,7 +3,7 @@ from shutil import rmtree
 
 from lightning.pytorch.loggers import TensorBoardLogger
 
-from kostyl.ml.dist_utils import is_main_process
+from kostyl.ml.dist_utils import is_local_zero_rank
 from kostyl.utils.logging import setup_logger
 
 
@@ -15,7 +15,7 @@ def setup_tb_logger(
 ) -> TensorBoardLogger:
     """Sets up a TensorBoardLogger for PyTorch Lightning."""
     if runs_dir.exists():
-        if is_main_process():
+        if is_local_zero_rank():
             logger.warning(f"TensorBoard log directory {runs_dir} already exists.")
             rmtree(runs_dir)
             logger.warning(f"Removed existing TensorBoard log directory {runs_dir}.")
