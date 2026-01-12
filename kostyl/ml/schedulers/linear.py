@@ -21,24 +21,23 @@ class _LinearScheduleBase(BaseScheduler):
         self.start_value = start_value
         self.final_value = final_value
 
-        self.scheduler_values: npt.NDArray[np.float64] = np.array([], dtype=np.float64)
+        self.scheduled_values: npt.NDArray[np.float64] = np.array([], dtype=np.float64)
         self.current_value_ = self.start_value
         return
 
     def _create_scheduler(self) -> None:
-        self.scheduler_values = np.linspace(
+        self.scheduled_values = np.linspace(
             self.start_value, self.final_value, num=self.num_iters, dtype=np.float64
         )
-        if len(self.scheduler_values) != self.num_iters:
-            raise ValueError(
-                f"Scheduler length ({len(self.scheduler_values)}) does not match total_iters ({self.num_iters})."
-            )
+        self._verify()
         return
 
     @override
-    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
-        super().load_state_dict(state_dict)
-        self.scheduler_values = np.array([], dtype=np.float64)
+    def _verify(self) -> None:
+        if len(self.scheduled_values) != self.num_iters:
+            raise ValueError(
+                f"Scheduler length ({len(self.scheduled_values)}) does not match total_iters ({self.num_iters})."
+            )
         return
 
     @override
@@ -46,13 +45,13 @@ class _LinearScheduleBase(BaseScheduler):
         raise NotImplementedError
 
     def _get_value(self, it: int) -> float:
-        if len(self.scheduler_values) == 0:
+        if len(self.scheduled_values) == 0:
             self._create_scheduler()
 
         if it >= self.num_iters:
             value: float = self.final_value
         else:
-            value: float = self.scheduler_values[it]
+            value: float = self.scheduled_values[it]
         self.current_value_ = value
         return value
 
@@ -106,6 +105,21 @@ class LinearScheduler(_LinearScheduleBase):
         return
 
     @override
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
+        self.__dict__.update(state_dict)
+        self.scheduled_values = np.array([], dtype=np.float64)
+        return
+
+    @override
+    def state_dict(self) -> dict[str, Any]:
+        state = {
+            k: v
+            for k, v in self.__dict__.items()
+            if k not in ["scheduled_values", "optimizer"]
+        }
+        return state
+
+    @override
     def step(self, it: int) -> None:
         value = self._get_value(it)
         for pg in self.optimizer.param_groups:
@@ -136,6 +150,17 @@ class LinearScheduler(_LinearScheduleBase):
 
 class LinearParamScheduler(_LinearScheduleBase):
     """LinearParamScheduler adjusts a parameter value using a linear scheduler."""
+
+    @override
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
+        self.__dict__.update(state_dict)
+        self.scheduled_values = np.array([], dtype=np.float64)
+        return
+
+    @override
+    def state_dict(self) -> dict[str, Any]:
+        state = {k: v for k, v in self.__dict__.items() if k != "scheduled_values"}
+        return state
 
     @override
     def step(self, it: int) -> float:

@@ -6,18 +6,20 @@ from typing import Any
 class BaseScheduler(ABC):
     """Base class for learning rate schedulers."""
 
+    @abstractmethod
     def state_dict(self) -> dict[str, Any]:
         """Get the state as a state dictionary."""
-        return {
-            key: value
-            for key, value in self.__dict__.items()
-            if key not in ["optimizer", "scheduler_values"]
-        }
+        raise NotImplementedError
 
+    @abstractmethod
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Load the state from a state dictionary."""
-        self.__dict__.update(state_dict)
-        return
+        raise NotImplementedError
+
+    @abstractmethod
+    def _verify(self) -> None:
+        """Verify the scheduler configuration."""
+        raise NotImplementedError
 
     def __getstate__(self) -> dict[str, Any]:
         """Get the state for pickling."""
