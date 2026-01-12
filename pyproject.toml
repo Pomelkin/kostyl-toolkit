@@ -60,7 +60,7 @@ explicit = true
 [tool.pyright]
 typeCheckingMode = "standard" # "off" | "basic" | "standard" | "strict"
 reportMissingTypeStubs = false
-reportIncompatibleMethodOverride = false
+reportIncompatibleMethodOverride = true
 exclude = [
     ".venv",
     "build",

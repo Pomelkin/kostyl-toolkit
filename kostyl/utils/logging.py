@@ -94,7 +94,7 @@ _PRESETS = {"default": _DEFAULT_FMT, "only_message": _ONLY_MESSAGE_FMT}
 
 def setup_logger(
     name: str | None = None,
-    fmt: Literal["default", "only_message"] | str = "default",
+    fmt: Literal["default", "only_message"] | str = "only_message",
     level: str = "INFO",
     add_rank: bool | None = None,
     sink=sys.stdout,
