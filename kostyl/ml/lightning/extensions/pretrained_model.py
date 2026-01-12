@@ -12,12 +12,12 @@ from kostyl.utils.logging import setup_logger
 logger = setup_logger("LightningPretrainedModelMixin", fmt="only_message")
 
 
-class LightningCheckpointLoaderMixin(PreTrainedModel):
+class LightningCheckpointLoaderMixin:
     """A mixin class for loading pretrained models from PyTorch Lightning checkpoints."""
 
     @classmethod
-    def from_lightning_checkpoint[TModelInstance: LightningCheckpointLoaderMixin](  # noqa: C901
-        cls: type[TModelInstance],
+    def from_lightning_checkpoint[TModelInstance: PreTrainedModel](  # noqa: C901
+        cls: type[TModelInstance],  # pyright: ignore[reportGeneralTypeIssues]
         checkpoint_path: str | Path,
         config_key: str = "config",
         weights_prefix: str | None = "model.",
@@ -78,7 +78,7 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
             mmap=True,
         )
 
-        # 1. Восстанавливаем конфиг
+        # Load config
         config_cls = cast(type[PretrainedConfig], cls.config_class)
         config_dict = checkpoint_dict[config_key]
         config_dict.update(kwargs)
@@ -91,6 +91,7 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
 
         raw_state_dict: dict[str, torch.Tensor] = checkpoint_dict["state_dict"]
 
+        # Handle weights prefix
         if weights_prefix:
             if not weights_prefix.endswith("."):
                 weights_prefix = weights_prefix + "."
@@ -117,6 +118,7 @@ class LightningCheckpointLoaderMixin(PreTrainedModel):
         else:
             state_dict = raw_state_dict
 
+        # Instantiate model and load state dict
         model = cls.from_pretrained(
             pretrained_model_name_or_path=None,
             config=config,

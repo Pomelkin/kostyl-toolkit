@@ -26,11 +26,6 @@ module_logger = setup_logger(fmt="only_message")
 class KostylLightningModule(L.LightningModule):
     """Custom PyTorch Lightning Module with logging, checkpointing, and distributed training utilities."""
 
-    @property
-    def process_group(self) -> ProcessGroup | None:
-        """Returns the data parallel process group for distributed training."""
-        return self.get_process_group()
-
     def get_process_group(self) -> ProcessGroup | None:
         """
         Retrieves the data parallel process group for distributed training.
