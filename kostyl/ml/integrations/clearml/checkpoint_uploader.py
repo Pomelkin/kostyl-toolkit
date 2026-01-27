@@ -1,5 +1,3 @@
-from abc import ABC
-from abc import abstractmethod
 from collections.abc import Callable
 from functools import partial
 from pathlib import Path
@@ -7,22 +5,14 @@ from typing import override
 
 from clearml import OutputModel
 
+from kostyl.ml.base_uploader import ModelCheckpointUploader
 from kostyl.utils.logging import setup_logger
 
 
 logger = setup_logger()
 
 
-class RegistryUploaderCallback(ABC):
-    """Abstract Lightning callback responsible for tracking and uploading the best-performing model checkpoint."""
-
-    @abstractmethod
-    def upload_checkpoint(self, path: str | Path) -> None:
-        """Upload the checkpoint located at the given path to the configured registry backend."""
-        raise NotImplementedError
-
-
-class ClearMLRegistryUploaderCallback(RegistryUploaderCallback):
+class ClearMLCheckpointUploader(ModelCheckpointUploader):
     """PyTorch Lightning callback to upload the best model checkpoint to ClearML."""
 
     def __init__(
@@ -38,7 +28,7 @@ class ClearMLRegistryUploaderCallback(RegistryUploaderCallback):
         verbose: bool = True,
     ) -> None:
         """
-        Initializes the ClearMLRegistryUploaderCallback.
+        Initializes the ClearMLRegistryUploader.
 
         Args:
             model_name: The name for the newly created model.

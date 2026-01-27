@@ -1,0 +1,14 @@
+try:
+    import lightning  # noqa: F401
+except ImportError as e:
+    raise ImportError(
+        "Lightning integration requires the 'lightning' package. "
+        "Please install it via 'pip install lightning'."
+    ) from e
+
+
+from .mixins import LightningCheckpointLoaderMixin
+from .module import KostylLightningModule
+
+
+__all__ = ["KostylLightningModule", "LightningCheckpointLoaderMixin"]

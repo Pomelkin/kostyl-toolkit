@@ -1,75 +1,25 @@
 from pathlib import Path
-from typing import Self
-from typing import TypeVar
 
 from caseconverter import pascalcase
 from caseconverter import snakecase
 from clearml import Task
-from pydantic import BaseModel as PydanticBaseModel
 
+from kostyl.ml.configs import ConfigLoadingMixin
 from kostyl.utils.dict_manipulations import convert_to_flat_dict
 from kostyl.utils.dict_manipulations import flattened_dict_to_nested
 from kostyl.utils.fs import load_config
 
 
-TConfig = TypeVar("TConfig", bound=PydanticBaseModel)
-
-
-class BaseModelWithConfigLoading(PydanticBaseModel):
-    """Pydantic class providing basic configuration loading functionality."""
-
-    @classmethod
-    def from_file(
-        cls: type[Self],  # pyright: ignore
-        path: str | Path,
-    ) -> Self:
-        """
-        Create an instance of the class from a configuration file.
-
-        Args:
-            cls_: The class type to instantiate.
-            path (str | Path): Path to the configuration file.
-
-        Returns:
-            An instance of the class created from the configuration file.
-
-        """
-        config = load_config(path)
-        instance = cls.model_validate(config)
-        return instance
-
-    @classmethod
-    def from_dict(
-        cls: type[Self],  # pyright: ignore
-        state_dict: dict,
-    ) -> Self:
-        """
-        Creates an instance from a dictionary.
-
-        Args:
-            cls_: The class type to instantiate.
-            state_dict (dict): A dictionary representing the state of the
-                class that must be validated and used for initialization.
-
-        Returns:
-            An initialized instance of the class based on the
-                provided state dictionary.
-
-        """
-        instance = cls.model_validate(state_dict)
-        return instance
-
-
-class BaseModelWithClearmlSyncing(BaseModelWithConfigLoading):
-    """Pydantic class providing ClearML configuration loading and syncing functionality."""
+class BaseModelWithClearmlSyncing[TConfig: ConfigLoadingMixin]:
+    """Mixin providing ClearML task configuration syncing functionality for Pydantic models."""
 
     @classmethod
     def connect_as_file(
-        cls: type[Self],  # pyright: ignore
+        cls: type[TConfig],  # pyright: ignore
         task: Task,
         path: str | Path,
         alias: str | None = None,
-    ) -> Self:
+    ) -> TConfig:
         """
         Connects the configuration file to a ClearML task and creates an instance of the class from it.
 
@@ -104,11 +54,11 @@ class BaseModelWithClearmlSyncing(BaseModelWithConfigLoading):
 
     @classmethod
     def connect_as_dict(
-        cls: type[Self],  # pyright: ignore
+        cls: type[TConfig],  # pyright: ignore
         task: Task,
         path: str | Path,
         alias: str | None = None,
-    ) -> Self:
+    ) -> TConfig:
         """
         Connects configuration from a file as a dictionary to a ClearML task and creates an instance of the class.
 
@@ -135,9 +85,3 @@ class BaseModelWithClearmlSyncing(BaseModelWithConfigLoading):
 
         model = cls.from_dict(state_dict=config)
         return model
-
-
-class KostylBaseModel(BaseModelWithClearmlSyncing):
-    """A Pydantic model class with basic configuration loading functionality."""
-
-    pass

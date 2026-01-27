@@ -9,17 +9,16 @@ import torch.distributed as dist
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import ModelCheckpoint
 
+from kostyl.ml.base_uploader import ModelCheckpointUploader
 from kostyl.ml.configs import CheckpointConfig
 from kostyl.ml.dist_utils import is_local_zero_rank
-from kostyl.ml.lightning import KostylLightningModule
-from kostyl.ml.registry_uploader import RegistryUploaderCallback
 from kostyl.utils import setup_logger
 
 
 logger = setup_logger("callbacks/checkpoint.py")
 
 
-class ModelCheckpointWithRegistryUploader(ModelCheckpoint):
+class ModelCheckpointWithCheckpointUploader(ModelCheckpoint):
     r"""
     Save the model after every epoch by monitoring a quantity. Every logged metrics are passed to the
     :class:`~lightning.pytorch.loggers.logger.Logger` for the version it gets saved in the same directory as the
@@ -229,8 +228,8 @@ class ModelCheckpointWithRegistryUploader(ModelCheckpoint):
 
     def __init__(  # noqa: D107
         self,
-        registry_uploader_callback: RegistryUploaderCallback,
-        uploading_mode: Literal["only-best", "every-checkpoint"] = "only-best",
+        checkpoint_uploader: ModelCheckpointUploader,
+        upload_strategy: Literal["only-best", "every-checkpoint"] = "only-best",
         dirpath: _PATH | None = None,
         filename: str | None = None,
         monitor: str | None = None,
@@ -247,9 +246,9 @@ class ModelCheckpointWithRegistryUploader(ModelCheckpoint):
         save_on_train_epoch_end: bool | None = None,
         enable_version_counter: bool = True,
     ) -> None:
-        self.registry_uploader_callback = registry_uploader_callback
+        self.registry_uploader = checkpoint_uploader
         self.process_group: dist.ProcessGroup | None = None
-        self.uploading_mode = uploading_mode
+        self.upload_strategy = upload_strategy
         super().__init__(
             dirpath=dirpath,
             filename=filename,
@@ -270,39 +269,25 @@ class ModelCheckpointWithRegistryUploader(ModelCheckpoint):
         return
 
     @override
-    def setup(
-        self,
-        trainer: pl.Trainer,
-        pl_module: pl.LightningModule | KostylLightningModule,
-        stage: str,
-    ) -> None:
-        super().setup(trainer, pl_module, stage)
-        if isinstance(pl_module, KostylLightningModule):
-            self.process_group = pl_module.get_process_group()
-        return
-
-    @override
     def _save_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
         super()._save_checkpoint(trainer, filepath)
-        if dist.is_initialized():
-            dist.barrier(group=self.process_group)
-        if trainer.is_global_zero and self.registry_uploader_callback is not None:
-            match self.uploading_mode:
+        if trainer.is_global_zero and self.registry_uploader is not None:
+            match self.upload_strategy:
                 case "every-checkpoint":
-                    self.registry_uploader_callback.upload_checkpoint(filepath)
+                    self.registry_uploader.upload_checkpoint(filepath)
                 case "only-best":
                     if filepath == self.best_model_path:
-                        self.registry_uploader_callback.upload_checkpoint(filepath)
+                        self.registry_uploader.upload_checkpoint(filepath)
         return
 
 
 def setup_checkpoint_callback(
     dirpath: Path,
     ckpt_cfg: CheckpointConfig,
-    registry_uploader_callback: RegistryUploaderCallback | None = None,
-    uploading_strategy: Literal["only-best", "every-checkpoint"] | None = None,
+    checkpoint_uploader: ModelCheckpointUploader | None = None,
+    upload_strategy: Literal["only-best", "every-checkpoint"] | None = None,
     remove_folder_if_exists: bool = True,
-) -> ModelCheckpointWithRegistryUploader | ModelCheckpoint:
+) -> ModelCheckpointWithCheckpointUploader | ModelCheckpoint:
     """
     Create and configure a checkpoint callback for model saving.
 
@@ -313,29 +298,29 @@ def setup_checkpoint_callback(
     Args:
         dirpath: Path to the directory for saving checkpoints.
         ckpt_cfg: Checkpoint configuration (filename, monitor, mode, save_top_k).
-        registry_uploader_callback: Optional callback for uploading checkpoints to a remote registry.
-            Must be specified together with uploading_strategy.
-        uploading_strategy: Checkpoint upload mode:
+        checkpoint_uploader: Optional checkpoint uploader instance. If provided, enables
+            uploading of checkpoints to a remote registry.
+        upload_strategy: Checkpoint upload mode:
             - "only-best": only the best checkpoint is uploaded
             - "every-checkpoint": every saved checkpoint is uploaded
-            Must be specified together with registry_uploader_callback.
+            Must be specified together with checkpoint_uploader.
         remove_folder_if_exists: If True, removes existing checkpoint directory before creating a new one.
 
     Returns:
-        ModelCheckpointWithRegistryUploader if registry_uploader_callback is provided,
+        ModelCheckpointWithCheckpointUploader if checkpoint_uploader is provided,
         otherwise standard ModelCheckpoint.
 
     Raises:
-        ValueError: If only one of registry_uploader_callback or uploading_mode is None.
+        ValueError: If only one of checkpoint_uploader or uploading_mode is None.
 
     Note:
         If the dirpath directory already exists, it will be removed and recreated
         (only on the main process in distributed training) if remove_folder_if_exists is True.
 
     """
-    if (registry_uploader_callback is None) != (uploading_strategy is None):
+    if (checkpoint_uploader is None) != (upload_strategy is None):
         raise ValueError(
-            "Both registry_uploader_callback and uploading_mode must be provided or neither."
+            "Both checkpoint_uploader and upload_strategy must be provided or neither."
         )
 
     if dirpath.exists():
@@ -348,8 +333,8 @@ def setup_checkpoint_callback(
         logger.info(f"Creating checkpoint directory {dirpath}.")
         dirpath.mkdir(parents=True, exist_ok=True)
 
-    if (registry_uploader_callback is not None) and (uploading_strategy is not None):
-        checkpoint_callback = ModelCheckpointWithRegistryUploader(
+    if (checkpoint_uploader is not None) and (upload_strategy is not None):
+        checkpoint_callback = ModelCheckpointWithCheckpointUploader(
             dirpath=dirpath,
             filename=ckpt_cfg.filename,
             save_top_k=ckpt_cfg.save_top_k,
@@ -357,8 +342,8 @@ def setup_checkpoint_callback(
             mode=ckpt_cfg.mode,
             verbose=True,
             save_weights_only=ckpt_cfg.save_weights_only,
-            registry_uploader_callback=registry_uploader_callback,
-            uploading_mode=uploading_strategy,
+            checkpoint_uploader=checkpoint_uploader,
+            upload_strategy=upload_strategy,
         )
     else:
         checkpoint_callback = ModelCheckpoint(

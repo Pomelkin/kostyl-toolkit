@@ -1,4 +1,5 @@
 from typing import Any
+from typing import Literal
 from typing import override
 
 import numpy as np
@@ -7,20 +8,25 @@ import torch
 from .base import BaseScheduler
 
 
-class _CosineWithPlateauSchedulerCore(BaseScheduler):
-    """Core cosine with plateau scheduler logic."""
+class _PlateauWithAnnealingCore(BaseScheduler):
+    """Core annealing with plateau scheduler logic."""
 
     def __init__(
         self,
         param_name: str,
         num_iters: int,
-        base_value: float,
+        plateau_value: float,
         final_value: float,
         plateau_ratio: float,
         warmup_value: float | None = None,
         warmup_ratio: float | None = None,
         freeze_ratio: float | None = None,
+        annealing_type: Literal["cosine", "linear"] = "cosine",
     ) -> None:
+        if annealing_type not in ("cosine", "linear"):
+            raise ValueError(
+                f"Annealing type must be 'cosine' or 'linear', got {annealing_type}."
+            )
         if warmup_ratio is not None:
             if not (0 < warmup_ratio < 1):
                 raise ValueError(f"Warmup ratio must be in (0, 1), got {warmup_ratio}.")
@@ -47,16 +53,17 @@ class _CosineWithPlateauSchedulerCore(BaseScheduler):
 
         self.param_name = param_name
         self.num_iters = num_iters
-        self.base_value = base_value
+        self.plateau_value = plateau_value
         self.final_value = final_value
-        self.cosine_annealing_ratio = 1 - pre_annealing_ratio
+        self.annealing_ratio = 1 - pre_annealing_ratio
         self.plateau_ratio = plateau_ratio
         self.warmup_ratio = warmup_ratio
         self.warmup_value = warmup_value
         self.freeze_ratio = freeze_ratio
+        self.annealing_type = annealing_type
 
         self.scheduled_values: np.ndarray = np.array([], dtype=np.float64)
-        self.current_value_ = self.base_value
+        self.current_value_ = self.plateau_value
         return
 
     def _create_scheduler(self) -> None:
@@ -72,28 +79,41 @@ class _CosineWithPlateauSchedulerCore(BaseScheduler):
         if self.warmup_ratio is not None and self.warmup_value is not None:
             warmup_iters = int(self.num_iters * self.warmup_ratio)
             warmup_schedule = np.linspace(
-                self.warmup_value, self.base_value, warmup_iters, dtype=np.float64
+                self.warmup_value, self.plateau_value, warmup_iters, dtype=np.float64
             )
         else:
             warmup_iters = 0
             warmup_schedule = np.array([], dtype=np.float64)
 
-        # Create cosine annealing schedule
-        if self.cosine_annealing_ratio > 0:
-            cosine_annealing_iters = int(self.num_iters * self.cosine_annealing_ratio)
-            iters = np.arange(cosine_annealing_iters)
-            cosine_annealing_schedule = self.final_value + 0.5 * (
-                self.base_value - self.final_value
-            ) * (1 + np.cos(np.pi * iters / len(iters)))
+        # Create annealing schedule
+        if self.annealing_ratio > 0:
+            annealing_iters = int(self.num_iters * self.annealing_ratio)
+            match self.annealing_type:
+                case "cosine":
+                    iters = np.arange(annealing_iters)
+                    annealing_schedule = self.final_value + 0.5 * (
+                        self.plateau_value - self.final_value
+                    ) * (1 + np.cos(np.pi * iters / len(iters)))
+                case "linear":
+                    annealing_schedule = np.linspace(
+                        self.plateau_value,
+                        self.final_value,
+                        annealing_iters,
+                        dtype=np.float64,
+                    )
+                case _:
+                    raise ValueError(
+                        f"Unsupported annealing type: {self.annealing_type}"
+                    )
         else:
-            cosine_annealing_iters = 0
-            cosine_annealing_schedule = np.array([], dtype=np.float64)
+            annealing_iters = 0
+            annealing_schedule = np.array([], dtype=np.float64)
 
-        plateau_iters = (
-            self.num_iters - warmup_iters - freeze_iters - cosine_annealing_iters
-        )
+        plateau_iters = self.num_iters - warmup_iters - freeze_iters - annealing_iters
         if plateau_iters > 0:
-            plateau_schedule = np.full(plateau_iters, self.base_value, dtype=np.float64)
+            plateau_schedule = np.full(
+                plateau_iters, self.plateau_value, dtype=np.float64
+            )
         else:
             plateau_schedule = np.array([], dtype=np.float64)
 
@@ -103,7 +123,7 @@ class _CosineWithPlateauSchedulerCore(BaseScheduler):
                 freeze_schedule,
                 warmup_schedule,
                 plateau_schedule,
-                cosine_annealing_schedule,
+                annealing_schedule,
             )
         )
         self._verify()
@@ -137,12 +157,12 @@ class _CosineWithPlateauSchedulerCore(BaseScheduler):
         return {self.param_name: self.current_value_}
 
 
-class CosineWithPlateuScheduler(_CosineWithPlateauSchedulerCore):
+class PlateauWithAnnealingScheduler(_PlateauWithAnnealingCore):
     """
-    Applies a cosine schedule with plateau to an optimizer param-group field.
+    Applies an annealing schedule with plateau to an optimizer param-group field.
 
-    Schedule phases: freeze (0) → warmup → plateau (base_value) → cosine annealing to final_value.
-    The plateau phase maintains the base_value before cosine annealing begins.
+    Schedule phases: freeze (0) → warmup → plateau (plateau_value) → annealing (cosine/linear) to final_value.
+    The plateau phase maintains the plateau_value before annealing begins.
     """
 
     def __init__(
@@ -150,30 +170,32 @@ class CosineWithPlateuScheduler(_CosineWithPlateauSchedulerCore):
         optimizer: torch.optim.Optimizer,
         param_group_field: str,
         num_iters: int,
-        base_value: float,
+        plateau_value: float,
         final_value: float,
         plateau_ratio: float,
         warmup_value: float | None = None,
         warmup_ratio: float | None = None,
         freeze_ratio: float | None = None,
+        annealing_type: Literal["cosine", "linear"] = "cosine",
         multiplier_field: str | None = None,
         skip_if_zero: bool = False,
         apply_if_field: str | None = None,
         ignore_if_field: str | None = None,
     ) -> None:
         """
-        Configure cosine scheduling for matching optimizer groups.
+        Configure annealing scheduling for matching optimizer groups.
 
         Args:
             optimizer: Optimizer whose param groups are updated in-place.
             param_group_field: Name of the field that receives the scheduled value.
             num_iters: Number of scheduler iterations before clamping at ``final_value``.
-            base_value: Value maintained during plateau phase and used as cosine start.
-            final_value: Value approached as iterations progress during cosine annealing.
-            plateau_ratio: Fraction of iterations to maintain ``base_value`` before cosine annealing.
-            warmup_ratio: Optional fraction of iterations to linearly ramp from ``warmup_value`` to ``base_value``.
+            plateau_value: Value maintained during plateau phase and used as annealing start.
+            final_value: Value approached as iterations progress during annealing.
+            plateau_ratio: Fraction of iterations to maintain ``plateau_value`` before annealing.
+            warmup_ratio: Optional fraction of iterations to linearly ramp from ``warmup_value`` to ``plateau_value``.
             warmup_value: Starting value for the warmup ramp.
             freeze_ratio: Optional fraction of iterations to keep the value frozen at zero at the beginning.
+            annealing_type: Type of annealing from plateau to final value ("cosine" or "linear").
             multiplier_field: Optional per-group multiplier applied to the scheduled value.
             skip_if_zero: Leave groups untouched when their target field equals zero.
             apply_if_field: Require this flag to be present in a param group before updating.
@@ -188,12 +210,13 @@ class CosineWithPlateuScheduler(_CosineWithPlateauSchedulerCore):
         super().__init__(
             param_name=param_group_field,
             num_iters=num_iters,
-            base_value=base_value,
+            plateau_value=plateau_value,
             final_value=final_value,
             plateau_ratio=plateau_ratio,
             warmup_ratio=warmup_ratio,
             warmup_value=warmup_value,
             freeze_ratio=freeze_ratio,
+            annealing_type=annealing_type,
         )
         self.param_group_field = param_group_field
         return
@@ -242,12 +265,12 @@ class CosineWithPlateuScheduler(_CosineWithPlateauSchedulerCore):
         return
 
 
-class CosineWithPlateauParamScheduler(_CosineWithPlateauSchedulerCore):
+class PlateauWithAnnealingParamScheduler(_PlateauWithAnnealingCore):
     """
-    Standalone cosine scheduler with plateau for non-optimizer parameters.
+    Standalone annealing scheduler with plateau for non-optimizer parameters.
 
-    Schedule phases: freeze (0) → warmup → plateau (base_value) → cosine annealing to final_value.
-    The plateau phase maintains the base_value before cosine annealing begins.
+    Schedule phases: freeze (0) → warmup → plateau (plateau_value) → annealing (cosine/linear) to final_value.
+    The plateau phase maintains the plateau_value before annealing begins.
     """
 
     @override

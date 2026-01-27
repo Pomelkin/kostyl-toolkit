@@ -40,7 +40,7 @@ def log_dist(
 
     if not dist.is_initialized():
         module_logger.warning_once(
-            "Distributed process group is not initialized; logging from all ranks."
+            "Distributed process group is not initialized. Logging from the current process only."
         )
         log_attr(msg)
         return
@@ -65,7 +65,6 @@ def log_dist(
 def scale_lrs_by_world_size(
     lrs: dict[str, float],
     group: dist.ProcessGroup | None = None,
-    config_name: str = "",
     inv_scale: bool = False,
     verbose_level: Literal["only-zero-rank", "world"] | None = None,
 ) -> dict[str, float]:
@@ -79,7 +78,6 @@ def scale_lrs_by_world_size(
         lrs (dict[str, float]): A dictionary of learning rate names and their corresponding values to be scaled.
         group (dist.ProcessGroup | None): Optional process group used to determine
             the target world size. Defaults to the global process group.
-        config_name (str): Human-readable identifier included in log messages.
         inv_scale (bool): If True, use the inverse square-root scale factor.
         verbose_level (Literal["only-zero-rank", "world"] | None): Verbosity level for logging scaled values.
             - "only-zero-rank": Log only from the main process (rank 0).
@@ -102,7 +100,7 @@ def scale_lrs_by_world_size(
         new_value = value * scale
         if verbose_level is not None:
             log_dist(
-                f"New {config_name} lr {name.upper()}: {new_value}; OLD: {old_value}",
+                f"lr {name.upper()}: {new_value}; OLD: {old_value}",
                 log_scope=verbose_level,
                 group=group,
             )

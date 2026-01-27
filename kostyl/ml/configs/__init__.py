@@ -1,8 +1,8 @@
-from .base_model import KostylBaseModel
 from .hyperparams import HyperparamsConfig
 from .hyperparams import Lr
 from .hyperparams import Optimizer
 from .hyperparams import WeightDecay
+from .mixins import ConfigLoadingMixin
 from .training_settings import CheckpointConfig
 from .training_settings import DataConfig
 from .training_settings import DDPStrategyConfig
@@ -15,12 +15,12 @@ from .training_settings import TrainingSettings
 
 __all__ = [
     "CheckpointConfig",
+    "ConfigLoadingMixin",
     "DDPStrategyConfig",
     "DataConfig",
     "EarlyStoppingConfig",
     "FSDP1StrategyConfig",
     "HyperparamsConfig",
-    "KostylBaseModel",
     "LightningTrainerParameters",
     "Lr",
     "Optimizer",

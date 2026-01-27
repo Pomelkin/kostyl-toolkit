@@ -5,17 +5,15 @@ from typing import override
 
 import lightning as L
 import torch
-import torch.distributed as dist
 from lightning.pytorch.strategies import FSDPStrategy
 from torch import nn
-from torch.distributed import ProcessGroup
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchmetrics import Metric
 from torchmetrics import MetricCollection
 from transformers import PretrainedConfig
 from transformers import PreTrainedModel
 
-from kostyl.ml.metrics_formatting import apply_suffix
+from kostyl.ml.integrations.lightning.metrics_formatting import apply_suffix
 from kostyl.ml.schedulers.base import BaseScheduler
 from kostyl.utils import setup_logger
 
@@ -26,32 +24,6 @@ module_logger = setup_logger(fmt="only_message")
 class KostylLightningModule(L.LightningModule):
     """Custom PyTorch Lightning Module with logging, checkpointing, and distributed training utilities."""
 
-    def get_process_group(self) -> ProcessGroup | None:
-        """
-        Retrieves the data parallel process group for distributed training.
-
-        This method checks if distributed processing is initialized. If a device mesh is provided,
-        it extracts the data parallel mesh and returns its process group, unless the mesh size is 1,
-        in which case it logs a warning and returns None. If no device mesh is provided, it returns
-        the world process group.
-
-        Returns:
-            ProcessGroup | None: The data parallel process group if available and valid, otherwise None.
-
-        """
-        if not dist.is_initialized():
-            return None
-
-        if self.device_mesh is not None:
-            dp_mesh = self.device_mesh["data_parallel"]
-            if dp_mesh.size() == 1:
-                module_logger.warning("Data parallel mesh size is 1, returning None")
-                return None
-            dp_pg = dp_mesh.get_group()
-        else:
-            dp_pg = dist.group.WORLD
-        return dp_pg
-
     @property
     def model_instance(self) -> PreTrainedModel | nn.Module:
         """Returns the underlying model."""
@@ -60,10 +32,7 @@ class KostylLightningModule(L.LightningModule):
     @property
     def model_config(self) -> PretrainedConfig | None:
         """Returns the model configuration if available."""
-        model = self.model_instance
-        if hasattr(model, "config"):
-            return model.config  # type: ignore
-        return None
+        raise NotImplementedError
 
     @property
     def grad_clip_val(self) -> float | None:

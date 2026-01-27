@@ -36,6 +36,7 @@ class BatchCollatorWithKeyAlignment:
         keys_mapping: A dictionary mapping original keys to new keys.
         keys_to_keep: A set of keys to retain as-is from the original items.
         max_length: If provided, truncates "input_ids" and "attention_mask" to this length.
+            Only 1D tensors/lists are supported.
 
         Raises:
             ValueError: If both `keys_mapping` and `keys_to_keep` are None.
@@ -59,14 +60,16 @@ class BatchCollatorWithKeyAlignment:
     def _truncate_data(self, key: str, value: Any) -> Any:
         match value:
             case torch.Tensor():
-                if value.dim() > 2:
+                if value.dim() >= 2:
                     raise ValueError(
-                        f"Expected value with dim <= 2 for key {key}, got {value.dim()}"
+                        f"Expected tensor with dim < 2 for key {key}, got {value.dim()}. "
+                        "Check your data or disable truncation with `max_length=None`."
                     )
             case list():
                 if isinstance(value[0], list):
                     raise ValueError(
-                        f"Expected value with dim <= 2 for key {key}, got nested lists"
+                        f"Expected value with dim <= 2 for key {key}, got nested lists. "
+                        "Check your data or disable truncation with `max_length=None`."
                     )
         value = value[: self.max_length]
         return value

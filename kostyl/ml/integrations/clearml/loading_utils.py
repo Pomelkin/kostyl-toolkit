@@ -9,9 +9,26 @@ from transformers import AutoTokenizer
 from transformers import PreTrainedModel
 from transformers import PreTrainedTokenizerBase
 
-from kostyl.ml.lightning.extensions.pretrained_model import (
-    LightningCheckpointLoaderMixin,
-)
+
+try:
+    from kostyl.ml.integrations.lightning import (
+        LightningCheckpointLoaderMixin,  # pyright: ignore[reportAssignmentType]
+    )
+
+    LIGHTING_MIXIN_AVAILABLE = True
+except ImportError:
+
+    class LightningCheckpointLoaderMixin(PreTrainedModel):  # noqa: D101
+        pass  # type: ignore
+
+    @classmethod
+    def from_lightning_checkpoint(cls, *args: Any, **kwargs: Any) -> Any:  # noqa: D103
+        raise ImportError(
+            "Loading from Lightning checkpoints requires lightning integration. "
+            "Please package install via 'pip install lightning' to enable this functionality."
+        )
+
+    LIGHTING_MIXIN_AVAILABLE = False
 
 
 def get_tokenizer_from_clearml(
@@ -89,13 +106,23 @@ def get_model_from_clearml[
     local_path = Path(input_model.get_local_copy(raise_on_error=True))
 
     if local_path.is_dir() and input_model._is_package():
+        if not issubclass(model, (PreTrainedModel, AutoModel)):
+            raise ValueError(
+                f"Model class {model.__name__} must be a subclass of PreTrainedModel or AutoModel for directory loads."
+            )
         model_instance = model.from_pretrained(local_path, **kwargs)
     elif local_path.suffix == ".ckpt":
+        if not LIGHTING_MIXIN_AVAILABLE:
+            raise ImportError(
+                "Loading from Lightning checkpoints requires lightning integration. "
+                "Please package install via 'pip install lightning' to enable this functionality."
+            )
         if not issubclass(model, LightningCheckpointLoaderMixin):
             raise ValueError(
-                f"Model class {model.__name__} is not compatible with Lightning checkpoints."
+                f"Model class {model.__name__} is not compatible with Lightning checkpoints "
+                "(must inherit from LightningCheckpointLoaderMixin)."
             )
-        model_instance = model.from_lightning_checkpoint(local_path, **kwargs)
+        model_instance = model.from_lightning_checkpoint(local_path, **kwargs)  # type: ignore
     else:
         raise ValueError(
             f"Unsupported model format for path: {local_path}. "
