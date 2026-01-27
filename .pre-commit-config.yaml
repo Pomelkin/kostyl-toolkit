@@ -65,16 +65,3 @@ repos:
       files: ^(docker-)?compose\.ya?ml$
       # Optional: enable autofix on commit
       args: [ --fix ]
-
-# - repo: https://github.com/hoxbro/clean_notebook
-#   rev: v0.1.17
-#   hooks:
-#   - id: clean-notebook
-
-
-#      - id: uv-export
-
-#-   repo: https://github.com/mrtazz/checkmake.git
-#    rev: 0.2.2
-#    hooks:
-#    -   id: checkmake
