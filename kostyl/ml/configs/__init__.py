@@ -1,6 +1,6 @@
+from .hyperparams import OPTIMIZER
 from .hyperparams import HyperparamsConfig
 from .hyperparams import Lr
-from .hyperparams import Optimizer
 from .hyperparams import WeightDecay
 from .mixins import ConfigLoadingMixin
 from .training_settings import CheckpointConfig
@@ -14,6 +14,7 @@ from .training_settings import TrainingSettings
 
 
 __all__ = [
+    "OPTIMIZER",
     "CheckpointConfig",
     "ConfigLoadingMixin",
     "DDPStrategyConfig",
@@ -23,7 +24,6 @@ __all__ = [
     "HyperparamsConfig",
     "LightningTrainerParameters",
     "Lr",
-    "Optimizer",
     "SingleDeviceStrategyConfig",
     "TrainingSettings",
     "WeightDecay",

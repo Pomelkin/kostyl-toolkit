@@ -286,7 +286,7 @@ def setup_checkpoint_callback(
     ckpt_cfg: CheckpointConfig,
     checkpoint_uploader: ModelCheckpointUploader | None = None,
     upload_strategy: Literal["only-best", "every-checkpoint"] | None = None,
-    remove_folder_if_exists: bool = True,
+    remove_folder_if_exists: bool = False,
 ) -> ModelCheckpointWithCheckpointUploader | ModelCheckpoint:
     """
     Create and configure a checkpoint callback for model saving.

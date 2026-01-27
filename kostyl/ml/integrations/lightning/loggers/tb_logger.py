@@ -11,14 +11,17 @@ logger = setup_logger()
 
 
 def setup_tb_logger(
-    runs_dir: Path,
+    runs_dir: Path, remove_folder_if_exists: bool = False
 ) -> TensorBoardLogger:
     """Sets up a TensorBoardLogger for PyTorch Lightning."""
     if runs_dir.exists():
         if is_local_zero_rank():
             logger.warning(f"TensorBoard log directory {runs_dir} already exists.")
-            rmtree(runs_dir)
-            logger.warning(f"Removed existing TensorBoard log directory {runs_dir}.")
+            if remove_folder_if_exists:
+                rmtree(runs_dir)
+                logger.warning(
+                    f"Removed existing TensorBoard log directory {runs_dir}."
+                )
     else:
         logger.info(f"Creating TensorBoard log directory {runs_dir}.")
         runs_dir.mkdir(parents=True, exist_ok=True)

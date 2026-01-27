@@ -11,11 +11,19 @@ logger = setup_logger(fmt="only_message")
 
 
 class AdamConfig(BaseModel):
-    """AdamW optimizer hyperparameters configuration."""
+    """Adam optimizer hyperparameters configuration."""
 
-    type: Literal["AdamW"] = "AdamW"
+    type: Literal["AdamW", "Adam"] = "AdamW"
     betas: tuple[float, float] = (0.9, 0.999)
-    is_adamw: bool = True
+
+
+class MuonConfig(BaseModel):
+    """Muon optimizer hyperparameters configuration."""
+
+    type: Literal["Muon"]
+    nesterov: bool = True
+    ns_coefficients: tuple[float, float, float] = (3.4445, -4.7750, 2.0315)
+    ns_steps: int = 5
 
 
 class AdamWithPrecisionConfig(BaseModel):
@@ -28,67 +36,85 @@ class AdamWithPrecisionConfig(BaseModel):
     is_adamw: bool = True
 
 
-Optimizer = AdamConfig | AdamWithPrecisionConfig
+OPTIMIZER = AdamConfig | AdamWithPrecisionConfig | MuonConfig
+SCHEDULER = Literal[
+    "linear",
+    "cosine",
+    "plateau-with-cosine-annealing",
+    "plateau-with-linear-annealing",
+]
 
 
 class Lr(BaseModel):
     """Learning rate hyperparameters configuration."""
 
-    use_scheduler: bool = False
-    warmup_iters_ratio: float | None = Field(
-        default=None, gt=0, lt=1, validate_default=False
-    )
+    scheduler_type: SCHEDULER | None = None
+
+    freeze_ratio: float | None = Field(default=None, ge=0, le=1)
+    warmup_ratio: float | None = Field(default=None, gt=0, lt=1, validate_default=False)
     warmup_value: float | None = Field(default=None, gt=0, validate_default=False)
     base_value: float
     final_value: float | None = Field(default=None, gt=0, validate_default=False)
+    plateau_ratio: float | None = Field(
+        default=None, gt=0, lt=1, validate_default=False
+    )
 
     @model_validator(mode="after")
-    def validate_warmup(self) -> "Lr":
-        """Validates the warmup parameters based on use_scheduler."""
-        if (self.warmup_value is None) != (self.warmup_iters_ratio is None):  # fmt: skip
-            raise ValueError(
-                "Both warmup_value and warmup_iters_ratio must be provided or neither"
-            )
-        if ((self.warmup_value is not None) or (self.warmup_iters_ratio is not None)) and not self.use_scheduler:  # fmt: skip
-            logger.warning(
-                "use_scheduler is False, warmup_value and warmup_iters_ratio will be ignored."
-            )
-            self.warmup_value = None
-            self.warmup_iters_ratio = None
+    def _validate_freeze_ratio(self) -> "Lr":
+        if self.scheduler_type is None and self.freeze_ratio is not None:
+            logger.warning("use_scheduler is False, freeze_ratio will be ignored.")
+            self.freeze_ratio = None
         return self
 
     @model_validator(mode="after")
-    def validate_final_value(self) -> "Lr":
-        """Validates the final_value based on use_scheduler."""
-        if self.use_scheduler and (self.final_value is None):
-            raise ValueError("If use_scheduler is True, final_value must be provided.")
-        if (not self.use_scheduler) and (self.final_value is not None):
+    def _validate_warmup(self) -> "Lr":
+        if ((self.warmup_value is not None) or (self.warmup_ratio is not None)) and self.scheduler_type is None:  # fmt: skip
+            logger.warning(
+                "scheduler_type is None, warmup_value and warmup_ratio will be ignored."
+            )
+            self.warmup_value = None
+            self.warmup_ratio = None
+        if (self.warmup_value is None) != (self.warmup_ratio is None):  # fmt: skip
+            raise ValueError(
+                "Both warmup_value and warmup_ratio must be provided or neither"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _validate_final_value(self) -> "Lr":
+        if (self.scheduler_type in {"linear"}) and (self.final_value is not None):
+            raise ValueError("If scheduler_type is 'linear', final_value must be None.")
+        if (self.scheduler_type is None) and (self.final_value is not None):
             logger.warning("use_scheduler is False, final_value will be ignored.")
             self.final_value = None
         return self
 
-
-class WeightDecay(BaseModel):
-    """Weight decay hyperparameters configuration."""
-
-    use_scheduler: bool = False
-    base_value: float
-    final_value: float | None = None
-
     @model_validator(mode="after")
-    def validate_final_value(self) -> "WeightDecay":
-        """Validates the final_value based on use_scheduler."""
-        if self.use_scheduler and self.final_value is None:
-            raise ValueError("If use_scheduler is True, final_value must be provided.")
-        if not self.use_scheduler and self.final_value is not None:
-            logger.warning("use_scheduler is False, final_value will be ignored.")
+    def _validate_plateau_ratio(self) -> "Lr":
+        if self.scheduler_type is not None:
+            if self.scheduler_type.startswith("plateau") and self.plateau_ratio is None:
+                raise ValueError(
+                    "If scheduler_type is 'plateau-with-*', plateau_ratio must be provided."
+                )
+            if (
+                not self.scheduler_type.startswith("plateau")
+                and self.plateau_ratio is not None
+            ):
+                logger.warning(
+                    "scheduler_type is not 'plateau-with-*', plateau_ratio will be ignored."
+                )
+                self.plateau_ratio = None
         return self
+
+
+class WeightDecay(Lr):
+    """Weight decay hyperparameters configuration."""
 
 
 class HyperparamsConfig(BaseModel):
     """Model training hyperparameters configuration."""
 
     grad_clip_val: float | None = Field(default=None, gt=0, validate_default=False)
-    optimizer: Optimizer
+    optimizer: OPTIMIZER
     lr: Lr
     weight_decay: WeightDecay

@@ -4,15 +4,8 @@ import lightning as L
 import torch.distributed as dist
 from torch.distributed import ProcessGroup
 
-from kostyl.ml.configs import DDPStrategyConfig
-from kostyl.ml.configs import FSDP1StrategyConfig
-from kostyl.ml.configs import SingleDeviceStrategyConfig
 from kostyl.utils.logging import setup_logger
 
-
-TRAINING_STRATEGIES = (
-    FSDP1StrategyConfig | DDPStrategyConfig | SingleDeviceStrategyConfig
-)
 
 logger = setup_logger()
 
