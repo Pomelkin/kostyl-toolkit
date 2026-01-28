@@ -31,7 +31,7 @@ except ImportError:
     LIGHTING_MIXIN_AVAILABLE = False
 
 
-def get_tokenizer_from_clearml(
+def load_tokenizer_from_clearml(
     model_id: str,
     task: Task | None = None,
     ignore_remote_overrides: bool = True,
@@ -66,7 +66,7 @@ def get_tokenizer_from_clearml(
     return tokenizer, clearml_tokenizer
 
 
-def get_model_from_clearml[
+def load_model_from_clearml[
     TModel: PreTrainedModel | LightningCheckpointLoaderMixin | AutoModel
 ](
     model_id: str,

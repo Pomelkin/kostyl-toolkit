@@ -10,7 +10,7 @@ from kostyl.utils.dict_manipulations import flattened_dict_to_nested
 from kostyl.utils.fs import load_config
 
 
-class BaseModelWithClearmlSyncing[TConfig: ConfigLoadingMixin]:
+class ConfigSyncingClearmlMixin[TConfig: ConfigLoadingMixin]:
     """Mixin providing ClearML task configuration syncing functionality for Pydantic models."""
 
     @classmethod

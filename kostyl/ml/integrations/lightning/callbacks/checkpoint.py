@@ -15,7 +15,7 @@ from kostyl.ml.dist_utils import is_local_zero_rank
 from kostyl.utils import setup_logger
 
 
-logger = setup_logger("callbacks/checkpoint.py")
+logger = setup_logger()
 
 
 class ModelCheckpointWithCheckpointUploader(ModelCheckpoint):
@@ -278,6 +278,10 @@ class ModelCheckpointWithCheckpointUploader(ModelCheckpoint):
                 case "only-best":
                     if filepath == self.best_model_path:
                         self.registry_uploader.upload_checkpoint(filepath)
+                case _:
+                    logger.warning_once(
+                        "Unknown upload strategy for checkpoint uploader. Skipping upload."
+                    )
         return
 
 

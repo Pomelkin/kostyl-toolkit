@@ -14,7 +14,7 @@ from transformers import PretrainedConfig
 from transformers import PreTrainedModel
 
 from kostyl.ml.integrations.lightning.metrics_formatting import apply_suffix
-from kostyl.ml.schedulers.base import BaseScheduler
+from kostyl.ml.optim.schedulers import BaseScheduler
 from kostyl.utils import setup_logger
 
 

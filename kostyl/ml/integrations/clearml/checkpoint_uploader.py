@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from functools import partial
+from datetime import datetime
 from pathlib import Path
 from typing import override
 
@@ -24,7 +24,7 @@ class ClearMLCheckpointUploader(ModelCheckpointUploader):
         comment: str | None = None,
         framework: str | None = None,
         base_model_id: str | None = None,
-        new_model_per_upload: bool = True,
+        upload_as_new_model: bool = True,
         verbose: bool = True,
     ) -> None:
         """
@@ -38,20 +38,22 @@ class ClearMLCheckpointUploader(ModelCheckpointUploader):
             comment: A comment / description for the model.
             framework: The framework of the model (e.g., "PyTorch", "TensorFlow").
             base_model_id: Optional ClearML model ID to use as a base for the new model
-            new_model_per_upload: Whether to create a new ClearML model
-                for every upload or update weights of the same model. When updating weights,
-                the last uploaded checkpoint will be replaced (and deleted).
+            upload_as_new_model: Whether to create a new ClearML model
+                for every upload or update weights of the same model. When True,
+                each checkpoint is uploaded as a separate model with timestamp added to the name.
+                When False, weights of the same model are updated.
             verbose: Whether to log messages during upload.
 
         """
         super().__init__()
-        if base_model_id is not None and new_model_per_upload:
+        if base_model_id is not None and upload_as_new_model:
             raise ValueError(
-                "Cannot set base_model_id when new_model_per_upload is True."
+                "Cannot set base_model_id when upload_as_new_model is True."
             )
 
         self.verbose = verbose
-        self.new_model_per_upload = new_model_per_upload
+        self.upload_as_new_model = upload_as_new_model
+        self.model_name = model_name
         self.best_model_path: str = ""
         self.config_dict = config_dict
         self._output_model: OutputModel | None = None
@@ -59,15 +61,13 @@ class ClearMLCheckpointUploader(ModelCheckpointUploader):
         self._upload_callback: Callable | None = None
 
         self._validate_tags(tags)
-        self.model_fabric = partial(
-            OutputModel,
-            name=model_name,
-            label_enumeration=label_enumeration,
-            tags=tags,
-            comment=comment,
-            framework=framework,
-            base_model_id=base_model_id,
-        )
+        self.model_fabric_kwargs = {
+            "label_enumeration": label_enumeration,
+            "tags": tags,
+            "comment": comment,
+            "framework": framework,
+            "base_model_id": base_model_id,
+        }
         return
 
     @staticmethod
@@ -78,16 +78,22 @@ class ClearMLCheckpointUploader(ModelCheckpointUploader):
             tags.append("LightningCheckpoint")
         return None
 
-    @property
-    def output_model_(self) -> OutputModel:
-        """Returns the OutputModel instance based on `new_model_per_upload` setting."""
-        if self.new_model_per_upload:
-            model = self.model_fabric()
-            self._output_model = self.model_fabric()
-        else:
-            if self._output_model is None:
-                self._output_model = self.model_fabric()
-            model = self._output_model
+    def _create_new_model(self) -> OutputModel:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        model_name_with_timestamp = f"{self.model_name}_{timestamp}"
+        model = OutputModel(
+            name=model_name_with_timestamp,
+            **self.model_fabric_kwargs,
+        )
+        return model
+
+    def _get_output_model(self) -> OutputModel:
+        if self._output_model is None:
+            self._output_model = OutputModel(
+                name=self.model_name,
+                **self.model_fabric_kwargs,
+            )
+        model = self._output_model
         return model
 
     @override
@@ -105,12 +111,17 @@ class ClearMLCheckpointUploader(ModelCheckpointUploader):
         if self.verbose:
             logger.info(f"Uploading model from {path}")
 
-        self.output_model_.update_weights(
+        if self.upload_as_new_model:
+            output_model = self._create_new_model()
+        else:
+            output_model = self._get_output_model()
+
+        output_model.update_weights(
             path,
             auto_delete_file=False,
             async_enable=False,
         )
-        self.output_model_.update_design(config_dict=self.config_dict)
+        output_model.update_design(config_dict=self.config_dict)
 
         self._last_uploaded_model_path = path
         return
