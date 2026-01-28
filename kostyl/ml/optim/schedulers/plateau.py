@@ -198,8 +198,8 @@ class PlateauWithAnnealingScheduler(_PlateauWithAnnealingCore):
             annealing_type: Type of annealing from plateau to final value ("cosine" or "linear").
             multiplier_field: Optional per-group multiplier applied to the scheduled value.
             skip_if_zero: Leave groups untouched when their target field equals zero.
-            apply_if_field: Require this flag to be present in a param group before updating.
-            ignore_if_field: Skip groups that declare this flag.
+            apply_if_field: Require this key to be present in a param group before updating.
+            ignore_if_field: Skip groups that declare this key in their dictionaries.
 
         """
         self.apply_if_field = apply_if_field

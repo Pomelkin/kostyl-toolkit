@@ -21,6 +21,7 @@ class MuonConfig(BaseModel):
     """Muon optimizer hyperparameters configuration."""
 
     type: Literal["Muon"]
+    momentum: float = 0.95
     nesterov: bool = True
     ns_coefficients: tuple[float, float, float] = (3.4445, -4.7750, 2.0315)
     ns_steps: int = 5
@@ -29,14 +30,15 @@ class MuonConfig(BaseModel):
 class AdamWithPrecisionConfig(BaseModel):
     """Adam optimizer with low-precision hyperparameters configuration."""
 
-    type: Literal["Adam8bit", "Adam4bit", "AdamFp8"]
+    type: Literal[
+        "Adam8bit", "Adam4bit", "AdamFp8", "AdamW8bit", "AdamW4bit", "AdamWFp8"
+    ]
     betas: tuple[float, float] = (0.9, 0.999)
     block_size: int
     bf16_stochastic_round: bool = False
-    is_adamw: bool = True
 
 
-OPTIMIZER = AdamConfig | AdamWithPrecisionConfig | MuonConfig
+OPTIMIZER_CONFIG = AdamConfig | AdamWithPrecisionConfig | MuonConfig
 SCHEDULER = Literal[
     "linear",
     "cosine",
@@ -45,8 +47,8 @@ SCHEDULER = Literal[
 ]
 
 
-class Lr(BaseModel):
-    """Learning rate hyperparameters configuration."""
+class ScheduledParamConfig(BaseModel):
+    """Base configuration for a scheduled hyperparameter."""
 
     scheduler_type: SCHEDULER | None = None
 
@@ -60,14 +62,14 @@ class Lr(BaseModel):
     )
 
     @model_validator(mode="after")
-    def _validate_freeze_ratio(self) -> "Lr":
+    def _validate_freeze_ratio(self) -> "ScheduledParamConfig":
         if self.scheduler_type is None and self.freeze_ratio is not None:
             logger.warning("use_scheduler is False, freeze_ratio will be ignored.")
             self.freeze_ratio = None
         return self
 
     @model_validator(mode="after")
-    def _validate_warmup(self) -> "Lr":
+    def _validate_warmup(self) -> "ScheduledParamConfig":
         if ((self.warmup_value is not None) or (self.warmup_ratio is not None)) and self.scheduler_type is None:  # fmt: skip
             logger.warning(
                 "scheduler_type is None, warmup_value and warmup_ratio will be ignored."
@@ -81,7 +83,7 @@ class Lr(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def _validate_final_value(self) -> "Lr":
+    def _validate_final_value(self) -> "ScheduledParamConfig":
         if (self.scheduler_type in {"linear"}) and (self.final_value is not None):
             raise ValueError("If scheduler_type is 'linear', final_value must be None.")
         if (self.scheduler_type is None) and (self.final_value is not None):
@@ -90,7 +92,7 @@ class Lr(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def _validate_plateau_ratio(self) -> "Lr":
+    def _validate_plateau_ratio(self) -> "ScheduledParamConfig":
         if self.scheduler_type is not None:
             if self.scheduler_type.startswith("plateau") and self.plateau_ratio is None:
                 raise ValueError(
@@ -107,7 +109,11 @@ class Lr(BaseModel):
         return self
 
 
-class WeightDecay(Lr):
+class Lr(ScheduledParamConfig):
+    """Learning rate hyperparameters configuration."""
+
+
+class WeightDecay(ScheduledParamConfig):
     """Weight decay hyperparameters configuration."""
 
 
@@ -115,6 +121,6 @@ class HyperparamsConfig(BaseModel):
     """Model training hyperparameters configuration."""
 
     grad_clip_val: float | None = Field(default=None, gt=0, validate_default=False)
-    optimizer: OPTIMIZER
+    optimizer: OPTIMIZER_CONFIG
     lr: Lr
     weight_decay: WeightDecay

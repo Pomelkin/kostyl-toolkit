@@ -1,6 +1,10 @@
-from .hyperparams import OPTIMIZER
+from .hyperparams import OPTIMIZER_CONFIG
+from .hyperparams import AdamConfig
+from .hyperparams import AdamWithPrecisionConfig
 from .hyperparams import HyperparamsConfig
 from .hyperparams import Lr
+from .hyperparams import MuonConfig
+from .hyperparams import ScheduledParamConfig
 from .hyperparams import WeightDecay
 from .mixins import ConfigLoadingMixin
 from .training_settings import CheckpointConfig
@@ -14,7 +18,9 @@ from .training_settings import TrainingSettings
 
 
 __all__ = [
-    "OPTIMIZER",
+    "OPTIMIZER_CONFIG",
+    "AdamConfig",
+    "AdamWithPrecisionConfig",
     "CheckpointConfig",
     "ConfigLoadingMixin",
     "DDPStrategyConfig",
@@ -24,6 +30,8 @@ __all__ = [
     "HyperparamsConfig",
     "LightningTrainerParameters",
     "Lr",
+    "MuonConfig",
+    "ScheduledParamConfig",
     "SingleDeviceStrategyConfig",
     "TrainingSettings",
     "WeightDecay",
