@@ -1,6 +1,6 @@
 [project]
 name = "kostyl-toolkit"
-version = "0.1.38"
+version = "0.1.43"
 description = "Kickass Orchestration System for Training, Yielding & Logging "
 readme = "README.md"
 requires-python = ">=3.12"
@@ -10,13 +10,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-ml-core = [
+ml = [
     "case-converter>=1.2.0",
-    "clearml[s3]>=2.0.2",
-    "lightning>=2.5.6",
     "pydantic>=2.12.4",
-    "torch>=2.9.1",
-    "transformers>=4.57.1",
+    "torch",
+    "transformers",
 ]
 
 [dependency-groups]
@@ -30,18 +28,19 @@ dev = [
     "pyarrow>=22.0.0",
 ]
 
-ml-core = [
+ml = [
     "case-converter>=1.2.0",
     "clearml[s3]>=2.0.2",
     "lightning>=2.5.6",
     "pydantic>=2.12.4",
     "torch>=2.9.1",
+    "torchao>=0.15.0",
     "transformers>=4.57.1",
 ]
 
 
 [tool.uv]
-default-groups = ["dev", "ml-core"]
+default-groups = ["dev", "ml"]
 
 [build-system]
 requires = ["uv_build>=0.9.9,<0.10.0"]
@@ -58,17 +57,7 @@ publish-url = "https://test.pypi.org/legacy/"
 explicit = true
 
 [tool.pyright]
-typeCheckingMode = "standard" # "off" | "basic" | "standard" | "strict"
-reportMissingTypeStubs = false
-reportIncompatibleMethodOverride = true
-exclude = [
-    ".venv",
-    "build",
-    "dist",
-    "__pycache__",
-    "migrations",
-    "notebooks",
-]
+typeCheckingMode = "off" # "off" | "basic" | "standard" | "strict"
 
 [tool.ruff.lint]
 exclude = [

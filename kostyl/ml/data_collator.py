@@ -93,10 +93,10 @@ class BatchCollatorWithKeyAlignment:
                 if new_key is None:
                     continue
                 value = item[k]
-                if self.max_length is not None and new_key in (
+                if self.max_length is not None and new_key in {
                     "input_ids",
                     "attention_mask",
-                ):
+                }:
                     value = self._truncate_data(new_key, value)
                 new_item[new_key] = value
             aligned_batch.append(new_item)

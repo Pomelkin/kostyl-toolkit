@@ -38,18 +38,18 @@ class FSDP1StrategyConfig(BaseModel):
     """Fully Sharded Data Parallel (FSDP) strategy configuration."""
 
     type: Literal["fsdp1"]
-    param_dtype: DTYPE | None
-    reduce_dtype: DTYPE | None
-    buffer_dtype: DTYPE | None
+    param_dtype: DTYPE | None = None
+    reduce_dtype: DTYPE | None = None
+    buffer_dtype: DTYPE | None = None
 
 
 class FSDP2StrategyConfig(BaseModel):
     """Fully Sharded Data Parallel (FSDP) strategy configuration."""
 
     type: Literal["fsdp2"]
-    param_dtype: DTYPE | None
-    reduce_dtype: DTYPE | None
-    buffer_dtype: DTYPE | None
+    param_dtype: DTYPE | None = None
+    reduce_dtype: DTYPE | None = None
+    buffer_dtype: DTYPE | None = None
 
 
 class DDPStrategyConfig(BaseModel):
@@ -59,12 +59,20 @@ class DDPStrategyConfig(BaseModel):
     find_unused_parameters: bool = False
 
 
+SUPPORTED_STRATEGIES = (
+    FSDP1StrategyConfig
+    | FSDP2StrategyConfig
+    | SingleDeviceStrategyConfig
+    | DDPStrategyConfig
+)
+
+
 class LightningTrainerParameters(BaseModel):
     """Lightning Trainer parameters configuration."""
 
     accelerator: str
     max_epochs: int
-    strategy: FSDP1StrategyConfig | SingleDeviceStrategyConfig | DDPStrategyConfig
+    strategy: SUPPORTED_STRATEGIES
     val_check_interval: int | float
     devices: list[int] | int
     precision: PRECISION

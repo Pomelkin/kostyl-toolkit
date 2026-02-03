@@ -28,8 +28,8 @@ def create_params_groups(
             Defaults to None, which uses an empty set.
         no_decay_keywords (set[str] | None, optional): A set of string keywords. If a parameter's
             name contains any of these keywords, its weight decay is set to 0.0.
-            If additional keywords are provided, they will be added to the default set.
-            Defaults to None, which uses a standard set of exclusion keywords:
+            If keywords are provided, they will be added to the default set, otherwise the default set is used.
+            Default set of keywords:
             {"norm", "bias", "embedding", "tokenizer", "ln", "scale"}.
 
     Returns:

@@ -1,8 +1,11 @@
-from typing import Any
+from typing import TypedDict
+from typing import Unpack
 
 from torch.optim import Optimizer
+from torch.optim.optimizer import ParamsT
 
 from kostyl.ml.configs import OPTIMIZER_CONFIG
+from kostyl.ml.configs import SCHEDULER
 from kostyl.ml.configs import AdamConfig
 from kostyl.ml.configs import AdamWithPrecisionConfig
 from kostyl.ml.configs import MuonConfig
@@ -18,6 +21,17 @@ from .schedulers import PlateauWithAnnealingScheduler
 logger = setup_logger(fmt="only_message")
 
 
+class OVERRIDABLE_CONFIG_KWARGS(TypedDict, total=False):  # noqa: D101, N801
+    scheduler_type: SCHEDULER | None
+
+    freeze_ratio: float | None
+    warmup_ratio: float | None
+    warmup_value: float | None
+    base_value: float | None
+    final_value: float | None
+    plateau_ratio: float | None
+
+
 def create_scheduler(
     config: ScheduledParamConfig,
     param_group_field: str,
@@ -27,6 +41,7 @@ def create_scheduler(
     skip_if_zero: bool = False,
     apply_if_field: str | None = None,
     ignore_if_field: str | None = None,
+    **kwargs: Unpack[OVERRIDABLE_CONFIG_KWARGS],
 ) -> LinearScheduler | CosineScheduler | PlateauWithAnnealingScheduler:
     """
     Converts a ScheduledParamConfig to a scheduler instance.
@@ -41,37 +56,48 @@ def create_scheduler(
             Default is False.
         apply_if_field: Require this key to be present in a param group before updating.
         ignore_if_field: Skip groups that declare this key in their dictionaries.
+        **kwargs: Optional overrides for scheduler configuration parameters (e.g., base_value,
+            final_value, warmup_ratio, etc.). These overrides take precedence over the values
+            provided in the `config` object.
 
     Returns:
         A scheduler instance based on the configuration.
 
     """
-    if config.scheduler_type is None:
+    scheduler_type = kwargs.get("scheduler_type", config.scheduler_type)
+    base_value = kwargs.get("base_value", config.base_value)
+    final_value = kwargs.get("final_value", config.final_value)
+    warmup_ratio = kwargs.get("warmup_ratio", config.warmup_ratio)
+    warmup_value = kwargs.get("warmup_value", config.warmup_value)
+    freeze_ratio = kwargs.get("freeze_ratio", config.freeze_ratio)
+    plateau_ratio = kwargs.get("plateau_ratio", config.plateau_ratio)
+
+    if scheduler_type is None:
         raise ValueError("scheduler_type must be specified in the config.")
 
-    if "plateau" in config.scheduler_type:
-        scheduler_type = "plateau"
+    if "plateau" in scheduler_type:
+        lookup_scheduler_type = "plateau"
     else:
-        scheduler_type = config.scheduler_type
-    scheduler_cls = SCHEDULER_MAPPING[scheduler_type]  # type: ignore
+        lookup_scheduler_type = scheduler_type
+    scheduler_cls = SCHEDULER_MAPPING[lookup_scheduler_type]  # type: ignore
 
     if issubclass(scheduler_cls, PlateauWithAnnealingScheduler):
-        if "cosine" in config.scheduler_type:
+        if "cosine" in scheduler_type:
             annealing_type = "cosine"
-        elif "linear" in config.scheduler_type:
+        elif "linear" in scheduler_type:
             annealing_type = "linear"
         else:
-            raise ValueError(f"Unknown annealing_type: {config.scheduler_type}")
+            raise ValueError(f"Unknown annealing_type: {scheduler_type}")
         scheduler = scheduler_cls(
             optimizer=optim,
             param_group_field=param_group_field,
             num_iters=num_iters,
-            plateau_value=config.base_value,
-            final_value=config.final_value,  # type: ignore
-            warmup_ratio=config.warmup_ratio,
-            warmup_value=config.warmup_value,
-            freeze_ratio=config.freeze_ratio,
-            plateau_ratio=config.plateau_ratio,  # type: ignore
+            plateau_value=base_value,
+            final_value=final_value,  # type: ignore
+            warmup_ratio=warmup_ratio,
+            warmup_value=warmup_value,
+            freeze_ratio=freeze_ratio,
+            plateau_ratio=plateau_ratio,  # type: ignore
             annealing_type=annealing_type,
             multiplier_field=multiplier_field,
             skip_if_zero=skip_if_zero,
@@ -83,8 +109,8 @@ def create_scheduler(
             optimizer=optim,
             param_group_field=param_group_field,
             num_iters=num_iters,
-            initial_value=config.base_value,
-            final_value=config.final_value,  # type: ignore
+            initial_value=base_value,
+            final_value=final_value,  # type: ignore
             multiplier_field=multiplier_field,
             skip_if_zero=skip_if_zero,
             apply_if_field=apply_if_field,
@@ -95,23 +121,23 @@ def create_scheduler(
             optimizer=optim,
             param_group_field=param_group_field,
             num_iters=num_iters,
-            base_value=config.base_value,
-            final_value=config.final_value,  # type: ignore
-            warmup_ratio=config.warmup_ratio,
-            warmup_value=config.warmup_value,
-            freeze_ratio=config.freeze_ratio,
+            base_value=base_value,
+            final_value=final_value,  # type: ignore
+            warmup_ratio=warmup_ratio,
+            warmup_value=warmup_value,
+            freeze_ratio=freeze_ratio,
             multiplier_field=multiplier_field,
             skip_if_zero=skip_if_zero,
             apply_if_field=apply_if_field,
             ignore_if_field=ignore_if_field,
         )
     else:
-        raise ValueError(f"Unsupported scheduler type: {config.scheduler_type}")
+        raise ValueError(f"Unsupported scheduler type: {scheduler_type}")
     return scheduler
 
 
 def create_optimizer(  # noqa: C901
-    parameters_groups: dict[str, Any],
+    parameters_groups: ParamsT,
     optimizer_config: OPTIMIZER_CONFIG,
     lr: float,
     weight_decay: float,
@@ -120,8 +146,7 @@ def create_optimizer(  # noqa: C901
     Creates an optimizer based on the configuration.
 
     Args:
-        parameters_groups: Dictionary containing model parameters
-            (key "params" and per-group options, i.e. "lr", "weight_decay" and etc.).
+        parameters_groups: Parameter groups for the optimizer.
         optimizer_config: Configuration for the optimizer.
         lr: Learning rate.
         weight_decay: Weight decay.
