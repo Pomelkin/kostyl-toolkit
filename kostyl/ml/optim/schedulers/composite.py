@@ -36,6 +36,10 @@ class CompositeScheduler(BaseScheduler):
         return {key: value.state_dict() for key, value in self.schedulers.items()}
 
     @override
+    def _verify(self) -> None:
+        pass
+
+    @override
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         for key, value in state_dict.items():
             if key in self.schedulers:
