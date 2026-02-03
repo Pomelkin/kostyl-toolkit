@@ -1,4 +1,5 @@
 from .hyperparams import OPTIMIZER_CONFIG
+from .hyperparams import SCHEDULER
 from .hyperparams import AdamConfig
 from .hyperparams import AdamWithPrecisionConfig
 from .hyperparams import HyperparamsConfig
@@ -19,6 +20,7 @@ from .training_settings import TrainingSettings
 
 __all__ = [
     "OPTIMIZER_CONFIG",
+    "SCHEDULER",
     "AdamConfig",
     "AdamWithPrecisionConfig",
     "CheckpointConfig",
