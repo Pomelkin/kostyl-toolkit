@@ -8,6 +8,7 @@ from .hyperparams import MuonConfig
 from .hyperparams import ScheduledParamConfig
 from .hyperparams import WeightDecay
 from .mixins import ConfigLoadingMixin
+from .training_settings import SUPPORTED_STRATEGIES
 from .training_settings import CheckpointConfig
 from .training_settings import DataConfig
 from .training_settings import DDPStrategyConfig
@@ -21,6 +22,7 @@ from .training_settings import TrainingSettings
 __all__ = [
     "OPTIMIZER_CONFIG",
     "SCHEDULER",
+    "SUPPORTED_STRATEGIES",
     "AdamConfig",
     "AdamWithPrecisionConfig",
     "CheckpointConfig",

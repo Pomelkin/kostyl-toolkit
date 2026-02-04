@@ -41,6 +41,7 @@ class FSDP1StrategyConfig(BaseModel):
     param_dtype: DTYPE | None = None
     reduce_dtype: DTYPE | None = None
     buffer_dtype: DTYPE | None = None
+    use_cpu_offload: bool = False
 
 
 class FSDP2StrategyConfig(BaseModel):
@@ -49,7 +50,8 @@ class FSDP2StrategyConfig(BaseModel):
     type: Literal["fsdp2"]
     param_dtype: DTYPE | None = None
     reduce_dtype: DTYPE | None = None
-    buffer_dtype: DTYPE | None = None
+    output_dtype: DTYPE | None = None
+    use_cpu_offload: bool = False
 
 
 class DDPStrategyConfig(BaseModel):
