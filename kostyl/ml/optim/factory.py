@@ -161,7 +161,7 @@ def create_optimizer(  # noqa: C901
                 from torch.optim import Adam
 
                 optimizer = Adam(
-                    params=parameters_groups["params"],
+                    params=parameters_groups,
                     lr=lr,
                     weight_decay=weight_decay,
                     betas=optimizer_config.betas,
@@ -171,7 +171,7 @@ def create_optimizer(  # noqa: C901
                 from torch.optim import AdamW
 
                 optimizer = AdamW(
-                    params=parameters_groups["params"],
+                    params=parameters_groups,
                     lr=lr,
                     weight_decay=weight_decay,
                     betas=optimizer_config.betas,
@@ -183,7 +183,7 @@ def create_optimizer(  # noqa: C901
         from torch.optim import Muon
 
         optimizer = Muon(
-            params=parameters_groups["params"],
+            params=parameters_groups,
             lr=lr,
             weight_decay=weight_decay,
             momentum=optimizer_config.momentum,
@@ -208,7 +208,7 @@ def create_optimizer(  # noqa: C901
                 )
 
                 optimizer = Adam8bit(
-                    params=parameters_groups["params"],
+                    params=parameters_groups,
                     lr=lr,
                     betas=optimizer_config.betas,
                     block_size=optimizer_config.block_size,
@@ -222,7 +222,7 @@ def create_optimizer(  # noqa: C901
                 )
 
                 optimizer = Adam4bit(
-                    params=parameters_groups["params"],
+                    params=parameters_groups,
                     lr=lr,
                     betas=optimizer_config.betas,
                     block_size=optimizer_config.block_size,
@@ -236,7 +236,7 @@ def create_optimizer(  # noqa: C901
                 )
 
                 optimizer = AdamFp8(
-                    params=parameters_groups["params"],
+                    params=parameters_groups,
                     lr=lr,
                     betas=optimizer_config.betas,
                     block_size=optimizer_config.block_size,
@@ -246,7 +246,7 @@ def create_optimizer(  # noqa: C901
                 from torchao.optim import AdamW8bit
 
                 optimizer = AdamW8bit(
-                    params=parameters_groups["params"],
+                    params=parameters_groups,
                     lr=lr,
                     weight_decay=weight_decay,
                     betas=optimizer_config.betas,
@@ -257,7 +257,7 @@ def create_optimizer(  # noqa: C901
                 from torchao.optim import AdamW4bit
 
                 optimizer = AdamW4bit(
-                    params=parameters_groups["params"],
+                    params=parameters_groups,
                     lr=lr,
                     weight_decay=weight_decay,
                     betas=optimizer_config.betas,
@@ -268,7 +268,7 @@ def create_optimizer(  # noqa: C901
                 from torchao.optim import AdamWFp8
 
                 optimizer = AdamWFp8(
-                    params=parameters_groups["params"],
+                    params=parameters_groups,
                     lr=lr,
                     weight_decay=weight_decay,
                     betas=optimizer_config.betas,
