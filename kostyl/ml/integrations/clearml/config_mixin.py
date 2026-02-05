@@ -4,13 +4,12 @@ from caseconverter import pascalcase
 from caseconverter import snakecase
 from clearml import Task
 
-from kostyl.ml.configs import ConfigLoadingMixin
 from kostyl.utils.dict_manipulations import convert_to_flat_dict
 from kostyl.utils.dict_manipulations import flattened_dict_to_nested
 from kostyl.utils.fs import load_config
 
 
-class ConfigSyncingClearmlMixin[TConfig: ConfigLoadingMixin]:
+class ConfigSyncingClearmlMixin[TConfig]:
     """Mixin providing ClearML task configuration syncing functionality for Pydantic models."""
 
     @classmethod
@@ -48,8 +47,13 @@ class ConfigSyncingClearmlMixin[TConfig: ConfigLoadingMixin]:
             connected_path_str = str(connected_path)
         else:
             connected_path_str = connected_path
-
-        model = cls.from_file(path=connected_path_str)
+        try:
+            model = cls.from_file(path=connected_path_str)
+        except AttributeError as e:
+            raise AttributeError(
+                f"{cls.__name__} must implement from_file method to use. "
+                "Inherit from ConfigLoadingMixin to get this functionality or implement your own from_file method."
+            ) from e
         return model
 
     @classmethod
@@ -82,6 +86,11 @@ class ConfigSyncingClearmlMixin[TConfig: ConfigLoadingMixin]:
         flattened_config = convert_to_flat_dict(config)
         task.connect(flattened_config, name=pascalcase(name))
         config = flattened_dict_to_nested(flattened_config)
-
-        model = cls.from_dict(state_dict=config)
+        try:
+            model = cls.from_dict(state_dict=config)
+        except AttributeError as e:
+            raise AttributeError(
+                f"{cls.__name__} must implement from_dict method to use. "
+                "Inherit from ConfigLoadingMixin to get this functionality or implement your own from_dict method."
+            ) from e
         return model
