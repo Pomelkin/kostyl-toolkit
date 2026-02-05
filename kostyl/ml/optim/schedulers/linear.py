@@ -85,6 +85,7 @@ class LinearScheduler(_LinearScheduleBase):
             initial_value: Value used on the first iteration.
             final_value: Value used once ``num_iters`` iterations are consumed.
             multiplier_field: Optional per-group multiplier applied to the scheduled value.
+                if specified, but not found in a group, multiplier of 1.0 is assumed for that group.
             skip_if_zero: Leave groups untouched when their target field equals zero.
             apply_if_field: Require this key to be present in a param group before updating.
             ignore_if_field: Skip groups that declare this key in their dictionaries.
@@ -120,7 +121,7 @@ class LinearScheduler(_LinearScheduleBase):
         return state
 
     @override
-    def step(self, it: int) -> None:
+    def step(self, it: int) -> None:  # noqa: C901
         value = self._get_value(it)
         for pg in self.optimizer.param_groups:
             if self.param_group_field not in pg:
@@ -134,15 +135,21 @@ class LinearScheduler(_LinearScheduleBase):
             if (self.ignore_if_field is not None) and (self.ignore_if_field in pg):
                 continue
 
-            if self.skip_if_zero and pg[self.param_group_field] == 0:
-                continue
+            current_param_val = pg[self.param_group_field]
+
+            if self.skip_if_zero:
+                if isinstance(current_param_val, torch.Tensor):
+                    if current_param_val.item() == 0:
+                        continue
+                elif current_param_val == 0:
+                    continue
 
             if self.multiplier_field is not None:
-                if self.multiplier_field not in pg:
-                    multiplier = 1.0
-                else:
-                    multiplier = pg[self.multiplier_field]
-                pg[self.param_group_field] = value * multiplier
+                multiplier = pg.get(self.multiplier_field, 1.0)
+                value = value * multiplier
+
+            if isinstance(current_param_val, torch.Tensor):
+                current_param_val.fill_(value)
             else:
                 pg[self.param_group_field] = value
         return
