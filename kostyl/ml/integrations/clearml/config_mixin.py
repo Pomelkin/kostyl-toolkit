@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Self
 
 from caseconverter import pascalcase
 from caseconverter import snakecase
@@ -9,16 +10,16 @@ from kostyl.utils.dict_manipulations import flattened_dict_to_nested
 from kostyl.utils.fs import load_config
 
 
-class ConfigSyncingClearmlMixin[TConfig]:
+class ConfigSyncingClearmlMixin:
     """Mixin providing ClearML task configuration syncing functionality for Pydantic models."""
 
     @classmethod
     def connect_as_file(
-        cls: type[TConfig],  # pyright: ignore
+        cls,
         task: Task,
         path: str | Path,
         alias: str | None = None,
-    ) -> TConfig:
+    ) -> Self:
         """
         Connects the configuration file to a ClearML task and creates an instance of the class from it.
 
@@ -26,7 +27,6 @@ class ConfigSyncingClearmlMixin[TConfig]:
         then loads and validates the configuration to the class.
 
         Args:
-            cls: The class type to instantiate.
             task: The ClearML Task object to connect the configuration to.
             path: Path to the configuration file (supports YAML format).
             alias: Optional alias for the configuration in ClearML. Defaults to PascalCase of the class name if None.
@@ -58,11 +58,11 @@ class ConfigSyncingClearmlMixin[TConfig]:
 
     @classmethod
     def connect_as_dict(
-        cls: type[TConfig],  # pyright: ignore
+        cls,
         task: Task,
         path: str | Path,
         alias: str | None = None,
-    ) -> TConfig:
+    ) -> Self:
         """
         Connects configuration from a file as a dictionary to a ClearML task and creates an instance of the class.
 
@@ -70,7 +70,6 @@ class ConfigSyncingClearmlMixin[TConfig]:
         task parameters. Then it creates an instance of the class using the synced dictionary.
 
         Args:
-            cls: The class type of the model to be created (must be a TRetuningModel subclass).
             task: The ClearML task to connect the configuration to.
             path: Path to the configuration file to load parameters from.
             alias: Optional alias name for the configuration. If None, uses snake_case of class name.
