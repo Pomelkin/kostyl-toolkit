@@ -10,7 +10,7 @@ from kostyl.utils.logging import setup_logger
 logger = setup_logger()
 
 
-def estimate_total_steps(
+def estimate_total_steps(  # noqa: C901
     trainer: L.Trainer, dp_process_group: ProcessGroup | None = None
 ) -> int:
     """
@@ -34,18 +34,52 @@ def estimate_total_steps(
     logger.info("Loading `train_dataloader` to estimate number of stepping batches.")
     datamodule.setup("fit")
 
-    dataloader_len = len(datamodule.train_dataloader())
-    steps_per_epoch = dataloader_len // trainer.accumulate_grad_batches // world_size
+    train_dataloader = datamodule.train_dataloader()
+    try:
+        raw_len = len(train_dataloader)
+    except TypeError as e:
+        # Если IterableDataset без __len__
+        if isinstance(trainer.limit_train_batches, int):
+            raw_len = trainer.limit_train_batches
+        else:
+            raise ValueError(
+                "Cannot estimate steps for IterableDataset without __len__ unless limit_train_batches is an int."
+            ) from e
+
+    dl_len = raw_len // world_size
+
+    if trainer.overfit_batches > 0:
+        if isinstance(trainer.overfit_batches, int):
+            effective_len = min(dl_len, trainer.overfit_batches)
+        else:  # float
+            effective_len = int(dl_len * trainer.overfit_batches)
+    else:
+        limit_batches = trainer.limit_train_batches
+
+        if limit_batches is None or limit_batches == 1.0:
+            effective_len = dl_len
+        elif isinstance(limit_batches, int):
+            effective_len = min(dl_len, limit_batches)
+        elif isinstance(limit_batches, float):
+            effective_len = int(dl_len * limit_batches)
+        else:
+            raise RuntimeError(
+                f"Unexpected type for trainer.limit_train_batches: {type(limit_batches)}"
+            )
 
     if trainer.max_epochs is None:
         raise ValueError("Trainer must have `max_epochs` set to estimate total steps.")
+
+    steps_per_epoch = effective_len // trainer.accumulate_grad_batches
     total_steps = steps_per_epoch * trainer.max_epochs
 
     logger.info(
-        f"Total steps: {total_steps} (per-epoch: {steps_per_epoch}) "
-        f"-> Dataloader len: {dataloader_len} "
-        f"-> Accumulate grad batches: {trainer.accumulate_grad_batches} "
-        f"-> Epochs: {trainer.max_epochs} "
-        f"-> DataParallel size: {world_size}"
+        f"Total optimization steps: {total_steps} (Batches per epoch (per GPU): {steps_per_epoch}."
+        f"  Details:\n"
+        f"  <- Raw Dataloader len: {raw_len}\n"
+        f"  <- Global Batch Size factor (World Size): {world_size}\n"
+        f"  <- Effective len (after limits/overfit): {effective_len}\n"
+        f"  <- Accumulate grad batches: {trainer.accumulate_grad_batches}\n"
+        f"  <- Max Epochs: {trainer.max_epochs}"
     )
     return total_steps
