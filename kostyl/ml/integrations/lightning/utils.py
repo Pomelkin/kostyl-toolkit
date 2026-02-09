@@ -73,7 +73,7 @@ def estimate_total_steps(  # noqa: C901
     total_steps = steps_per_epoch * trainer.max_epochs
 
     logger.info(
-        f"Total optimization steps: {total_steps} (Batches per epoch (per GPU): {steps_per_epoch}.\n"
+        f"Total optimization steps: {total_steps} (Batches per epoch (per GPU): {steps_per_epoch})\n"
         f"  Details:\n"
         f"  -> Raw Dataloader len: {raw_len}\n"
         f"  -> Global Batch Size factor (World Size): {world_size}\n"

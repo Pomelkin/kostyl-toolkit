@@ -55,7 +55,6 @@ class LightningCheckpointLoaderMixin:
 
         """
         kwargs_for_prt = {
-            "state_dict": kwargs.pop("state_dict", None),
             "proxies": kwargs.pop("proxies", None),
             "output_loading_info": kwargs.pop("output_loading_info", False),
             "from_pipeline": kwargs.pop("_from_pipeline", None),
