@@ -54,6 +54,36 @@ class LightningCheckpointLoaderMixin:
             FileNotFoundError: If the checkpoint file does not exist.
 
         """
+        kwargs_for_prt = {
+            "state_dict": kwargs.pop("state_dict", None),
+            "proxies": kwargs.pop("proxies", None),
+            "output_loading_info": kwargs.pop("output_loading_info", False),
+            "from_pipeline": kwargs.pop("_from_pipeline", None),
+            "from_auto_class": kwargs.pop("_from_auto", False),
+            "dtype": kwargs.pop("dtype", None),
+            "torch_dtype": kwargs.pop("torch_dtype", None),
+            "device_map": kwargs.pop("device_map", None),
+            "max_memory": kwargs.pop("max_memory", None),
+            "offload_folder": kwargs.pop("offload_folder", None),
+            "offload_buffers": kwargs.pop("offload_buffers", False),
+            "quantization_config": kwargs.pop("quantization_config", None),
+            "subfolder": kwargs.pop("subfolder", ""),
+            "commit_hash": kwargs.pop("_commit_hash", None),
+            "variant": kwargs.pop("variant", None),
+            "adapter_kwargs": (kwargs.pop("adapter_kwargs", {}) or {}).copy(),
+            "adapter_name": kwargs.pop("adapter_name", "default"),
+            "generation_config": kwargs.pop("generation_config", None),
+            "gguf_file": kwargs.pop("gguf_file", None),
+            "tp_plan": kwargs.pop("tp_plan", None),
+            "tp_size": kwargs.pop("tp_size", None),
+            "distributed_config": kwargs.pop("distributed_config", None),
+            "device_mesh": kwargs.pop("device_mesh", None),
+            "trust_remote_code": kwargs.pop("trust_remote_code", None),
+            "use_kernels": kwargs.pop("use_kernels", False),
+            "kernel_config": kwargs.pop("kernel_config", None),
+            "key_mapping": kwargs.pop("key_mapping", None),
+        }
+
         if isinstance(checkpoint_path, str):
             checkpoint_path = Path(checkpoint_path)
         if weights_prefix is None:
@@ -83,11 +113,6 @@ class LightningCheckpointLoaderMixin:
         config_dict = checkpoint_dict[config_key]
         config_dict.update(kwargs)
         config = config_cls.from_dict(config_dict)
-
-        kwargs_for_model: dict[str, Any] = {}
-        for key, value in kwargs.items():
-            if not hasattr(config, key):
-                kwargs_for_model[key] = value
 
         raw_state_dict: dict[str, torch.Tensor] = checkpoint_dict["state_dict"]
 
@@ -123,7 +148,7 @@ class LightningCheckpointLoaderMixin:
             pretrained_model_name_or_path=None,
             config=config,
             state_dict=state_dict,
-            **kwargs_for_model,
+            **kwargs_for_prt,
         )
 
         return model

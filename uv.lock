@@ -1144,7 +1144,7 @@ wheels = [
 
 [[package]]
 name = "kostyl-toolkit"
-version = "0.1.44"
+version = "0.1.54"
 source = { editable = "." }
 dependencies = [
     { name = "case-converter" },

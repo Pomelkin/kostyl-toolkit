@@ -37,16 +37,15 @@ def estimate_total_steps(  # noqa: C901
     train_dataloader = datamodule.train_dataloader()
     try:
         raw_len = len(train_dataloader)
+        dl_len = raw_len // world_size
     except TypeError as e:
         # Если IterableDataset без __len__
         if isinstance(trainer.limit_train_batches, int):
-            raw_len = trainer.limit_train_batches
+            dl_len = trainer.limit_train_batches
         else:
             raise ValueError(
                 "Cannot estimate steps for IterableDataset without __len__ unless limit_train_batches is an int."
             ) from e
-
-    dl_len = raw_len // world_size
 
     if trainer.overfit_batches > 0:
         if isinstance(trainer.overfit_batches, int):
@@ -74,12 +73,12 @@ def estimate_total_steps(  # noqa: C901
     total_steps = steps_per_epoch * trainer.max_epochs
 
     logger.info(
-        f"Total optimization steps: {total_steps} (Batches per epoch (per GPU): {steps_per_epoch}."
+        f"Total optimization steps: {total_steps} (Batches per epoch (per GPU): {steps_per_epoch}.\n"
         f"  Details:\n"
-        f"  <- Raw Dataloader len: {raw_len}\n"
-        f"  <- Global Batch Size factor (World Size): {world_size}\n"
-        f"  <- Effective len (after limits/overfit): {effective_len}\n"
-        f"  <- Accumulate grad batches: {trainer.accumulate_grad_batches}\n"
-        f"  <- Max Epochs: {trainer.max_epochs}"
+        f"  -> Raw Dataloader len: {raw_len}\n"
+        f"  -> Global Batch Size factor (World Size): {world_size}\n"
+        f"  -> Effective len (after limits/overfit): {effective_len}\n"
+        f"  -> Accumulate grad batches: {trainer.accumulate_grad_batches}\n"
+        f"  -> Max Epochs: {trainer.max_epochs}"
     )
     return total_steps

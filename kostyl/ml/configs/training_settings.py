@@ -41,6 +41,7 @@ class FSDP1StrategyConfig(BaseModel):
     param_dtype: DTYPE | None = None
     reduce_dtype: DTYPE | None = None
     buffer_dtype: DTYPE | None = None
+    keep_low_precision_grads: bool = False
     use_cpu_offload: bool = False
 
 
