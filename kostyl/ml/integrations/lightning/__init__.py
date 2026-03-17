@@ -9,6 +9,11 @@ except ImportError as e:
 
 from .mixins import LightningCheckpointLoaderMixin
 from .module import KostylLightningModule
+from .utils import estimate_total_steps
 
 
-__all__ = ["KostylLightningModule", "LightningCheckpointLoaderMixin"]
+__all__ = [
+    "KostylLightningModule",
+    "LightningCheckpointLoaderMixin",
+    "estimate_total_steps",
+]

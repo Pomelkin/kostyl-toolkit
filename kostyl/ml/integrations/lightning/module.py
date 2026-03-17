@@ -1,6 +1,8 @@
+from collections import defaultdict
 from collections.abc import Callable
 from collections.abc import Mapping
 from typing import Any
+from typing import cast
 from typing import override
 
 import lightning as L
@@ -15,6 +17,7 @@ from transformers import PreTrainedModel
 
 from kostyl.ml.integrations.lightning.metrics_formatting import apply_suffix
 from kostyl.ml.optim.schedulers import BaseScheduler
+from kostyl.utils import is_overridden
 from kostyl.utils import setup_logger
 
 
@@ -22,7 +25,14 @@ module_logger = setup_logger(fmt="only_message")
 
 
 class KostylLightningModule(L.LightningModule):
-    """Custom PyTorch Lightning Module with logging, checkpointing, and distributed training utilities."""
+    """
+    Custom PyTorch Lightning Module.
+
+    Child classes must implement this methods:
+    - `model_instance`: to return the underlying model instance (e.g., a Hugging Face PreTrainedModel).
+    - `model_config`: to return the model configuration if available.
+    - `grad_clip_val`: to return the gradient clipping value from hyperparameters if set.
+    """
 
     @property
     def model_instance(self) -> PreTrainedModel | nn.Module:
@@ -34,6 +44,32 @@ class KostylLightningModule(L.LightningModule):
         """Returns the model configuration if available."""
         raise NotImplementedError
 
+    def get_configuration_dict(self) -> dict[str, Any]:
+        """Returns a dictionary of configuration values to be saved into the checkpoint."""
+        model = self.model_instance
+        cfg = defaultdict(dict)
+
+        if is_overridden(self.__class__, "model_config"):
+            cfg_instance = self.model_config
+        elif hasattr(model, "config"):
+            cfg_instance = model.config
+        else:
+            raise RuntimeError(
+                "Cannot find model configuration. Please override `model_config` property or ensure the model has a `config` attribute."
+            )
+
+        if hasattr(cfg_instance, "to_dict"):
+            cfg["config"] = cfg_instance.to_dict()  # type: ignore
+
+        hf_peft_config_loaded = getattr(self, "_hf_peft_config_loaded", False)
+        if hf_peft_config_loaded:
+            model = cast(PreTrainedModel, model)
+            active_adapters = model.active_adapters()
+            for adapter_name in active_adapters:
+                curr_adapter_cfg = self.peft_config[adapter_name]  # type: ignore
+                cfg["peft_config"][adapter_name] = curr_adapter_cfg.to_dict()  # type: ignore
+        return cfg
+
     @property
     def grad_clip_val(self) -> float | None:
         """Returns the gradient clipping value from hyperparameters if set."""
@@ -41,21 +77,8 @@ class KostylLightningModule(L.LightningModule):
 
     @override
     def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
-        model = self.model_instance
-        if hasattr(model, "config"):
-            cfg = model.config
-            if hasattr(cfg, "to_dict"):
-                checkpoint["config"] = cfg.to_dict()  # type: ignore
-
-        if hasattr(model, "peft_config"):
-            peft_cfg = model.peft_config
-            if isinstance(peft_cfg, dict):
-                checkpoint["peft_config"] = {
-                    k: v.to_dict()
-                    for k, v in peft_cfg.items()  # type: ignore
-                }
-            else:
-                checkpoint["peft_config"] = {"default": peft_cfg.to_dict()}  # type: ignore
+        cfg = self.get_configuration_dict()
+        checkpoint["kostyl_config"].update(cfg)
         return
 
     @override
@@ -65,10 +88,12 @@ class KostylLightningModule(L.LightningModule):
             return
 
         if not isinstance(self.trainer.strategy, FSDPStrategy):
-            norm = torch.nn.utils.clip_grad_norm_(self.parameters(), grad_clip_val)
+            norm = torch.nn.utils.clip_grad_norm_(
+                self.parameters(), max_norm=grad_clip_val
+            )
         else:
             module: FSDP = self.trainer.strategy.model  # type: ignore
-            norm = module.clip_grad_norm_(grad_clip_val)
+            norm = module.clip_grad_norm_(max_norm=grad_clip_val)  # type: ignore
         self.log(
             "grad_norm",
             norm,
@@ -140,7 +165,7 @@ class KostylLightningModule(L.LightningModule):
             )
             return
         scheduler_state_dict = scheduler.current_value()
-        scheduler_state_dict = apply_suffix(scheduler_state_dict, "scheduled")
+        scheduler_state_dict = apply_suffix(scheduler_state_dict, "scheduler")
         self.log_dict(
             scheduler_state_dict,
             prog_bar=False,

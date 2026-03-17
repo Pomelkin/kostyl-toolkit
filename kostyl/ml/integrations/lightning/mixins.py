@@ -17,7 +17,7 @@ class LightningCheckpointLoaderMixin:
 
     @classmethod
     def from_lightning_checkpoint[TModelInstance: PreTrainedModel](  # noqa: C901
-        cls: type[TModelInstance],  # pyright: ignore[reportGeneralTypeIssues]
+        cls: type[TModelInstance],
         checkpoint_path: str | Path,
         config_key: str = "config",
         weights_prefix: str | None = "model.",
@@ -54,11 +54,11 @@ class LightningCheckpointLoaderMixin:
             FileNotFoundError: If the checkpoint file does not exist.
 
         """
-        kwargs_for_prt = {
+        from_pretrained_kwargs = {
             "proxies": kwargs.pop("proxies", None),
             "output_loading_info": kwargs.pop("output_loading_info", False),
-            "from_pipeline": kwargs.pop("_from_pipeline", None),
-            "from_auto_class": kwargs.pop("_from_auto", False),
+            "_from_pipeline": kwargs.pop("_from_pipeline", None),
+            "_from_auto": kwargs.pop("_from_auto", False),
             "dtype": kwargs.pop("dtype", None),
             "torch_dtype": kwargs.pop("torch_dtype", None),
             "device_map": kwargs.pop("device_map", None),
@@ -67,7 +67,7 @@ class LightningCheckpointLoaderMixin:
             "offload_buffers": kwargs.pop("offload_buffers", False),
             "quantization_config": kwargs.pop("quantization_config", None),
             "subfolder": kwargs.pop("subfolder", ""),
-            "commit_hash": kwargs.pop("_commit_hash", None),
+            "_commit_hash": kwargs.pop("_commit_hash", None),
             "variant": kwargs.pop("variant", None),
             "adapter_kwargs": (kwargs.pop("adapter_kwargs", {}) or {}).copy(),
             "adapter_name": kwargs.pop("adapter_name", "default"),
@@ -81,13 +81,14 @@ class LightningCheckpointLoaderMixin:
             "use_kernels": kwargs.pop("use_kernels", False),
             "kernel_config": kwargs.pop("kernel_config", None),
             "key_mapping": kwargs.pop("key_mapping", None),
+            "attn_implementation": kwargs.pop("attn_implementation", None),
         }
 
         if isinstance(checkpoint_path, str):
             checkpoint_path = Path(checkpoint_path)
         if weights_prefix is None:
             weights_prefix = ""
-        weights_prefix = cast(str, weights_prefix)
+
         if weights_prefix == "" and strict_prefix:
             logger.warning(
                 "strict_prefix=True has no effect when weights_prefix is empty or None."
@@ -119,8 +120,10 @@ class LightningCheckpointLoaderMixin:
         if weights_prefix:
             if not weights_prefix.endswith("."):
                 weights_prefix = weights_prefix + "."
+
             state_dict: dict[str, torch.Tensor] = {}
             matched_keys_counter = 0
+
             for key, value in raw_state_dict.items():
                 if key.startswith(weights_prefix):
                     new_key = key[len(weights_prefix) :]
@@ -147,7 +150,7 @@ class LightningCheckpointLoaderMixin:
             pretrained_model_name_or_path=None,
             config=config,
             state_dict=state_dict,
-            **kwargs_for_prt,
+            **from_pretrained_kwargs,
         )
 
         return model
