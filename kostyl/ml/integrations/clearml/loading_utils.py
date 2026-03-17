@@ -19,14 +19,12 @@ try:
 except ImportError:
 
     class LightningCheckpointLoaderMixin(PreTrainedModel):  # noqa: D101
-        pass  # type: ignore
-
-    @classmethod
-    def from_lightning_checkpoint(cls, *args: Any, **kwargs: Any) -> Any:  # noqa: D103
-        raise ImportError(
-            "Loading from Lightning checkpoints requires lightning integration. "
-            "Please package install via 'pip install lightning' to enable this functionality."
-        )
+        @classmethod
+        def from_lightning_checkpoint(cls, *args: Any, **kwargs: Any) -> Any:  # noqa: D102
+            raise ImportError(
+                "Loading from Lightning checkpoints requires lightning integration. "
+                "Please package install via 'pip install lightning' to enable this functionality."
+            )
 
     LIGHTING_MIXIN_AVAILABLE = False
 
@@ -94,23 +92,25 @@ def load_model_from_clearml[
         The instantiated model and the ClearML InputModel instance.
 
     """
-    input_model = InputModel(model_id=model_id)
+    clearml_model = InputModel(model_id=model_id)
 
     if task is not None:
-        input_model.connect(
+        clearml_model.connect(
             task,
             ignore_remote_overrides=ignore_remote_overrides,
             name=name,
         )
 
-    local_path = Path(input_model.get_local_copy(raise_on_error=True))
+    local_path = Path(clearml_model.get_local_copy(raise_on_error=True))
 
-    if local_path.is_dir() and input_model._is_package():
+    if local_path.is_dir() and clearml_model._is_package():
         if not issubclass(model, (PreTrainedModel, AutoModel)):
             raise ValueError(
-                f"Model class {model.__name__} must be a subclass of PreTrainedModel or AutoModel for directory loads."
+                f"Model class {model.__name__} must be a subclass of PreTrainedModel or AutoModel "
+                "to be loaded from a ClearML package directory."
             )
-        model_instance = model.from_pretrained(local_path, **kwargs)
+        model_instance = model.from_pretrained(local_path, **kwargs)  # type: ignore
+
     elif local_path.suffix == ".ckpt":
         if not LIGHTING_MIXIN_AVAILABLE:
             raise ImportError(
@@ -123,10 +123,12 @@ def load_model_from_clearml[
                 "(must inherit from LightningCheckpointLoaderMixin)."
             )
         model_instance = model.from_lightning_checkpoint(local_path, **kwargs)  # type: ignore
+
     else:
         raise ValueError(
             f"Unsupported model format for path: {local_path}. "
             "Expected a ClearML package directory or a .ckpt file."
         )
+
     model_instance = cast(TModel, model_instance)
-    return model_instance, input_model
+    return model_instance, clearml_model

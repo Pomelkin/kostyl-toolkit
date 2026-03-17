@@ -5,9 +5,9 @@ from caseconverter import pascalcase
 from caseconverter import snakecase
 from clearml import Task
 
-from kostyl.utils.dict_manipulations import convert_to_flat_dict
-from kostyl.utils.dict_manipulations import flattened_dict_to_nested
-from kostyl.utils.fs import load_config
+from kostyl.utils import convert_to_flat_dict
+from kostyl.utils import flattened_dict_to_nested
+from kostyl.utils import load_config
 
 
 class ConfigSyncingClearmlMixin:
@@ -48,7 +48,7 @@ class ConfigSyncingClearmlMixin:
         else:
             connected_path_str = connected_path
         try:
-            model = cls.from_file(path=connected_path_str)
+            model = cls.from_file(path=connected_path_str)  # type: ignore
         except AttributeError as e:
             raise AttributeError(
                 f"{cls.__name__} must implement from_file method to use. "
@@ -86,7 +86,7 @@ class ConfigSyncingClearmlMixin:
         task.connect(flattened_config, name=pascalcase(name))
         config = flattened_dict_to_nested(flattened_config)
         try:
-            model = cls.from_dict(state_dict=config)
+            model = cls.from_dict(state_dict=config)  # type: ignore
         except AttributeError as e:
             raise AttributeError(
                 f"{cls.__name__} must implement from_dict method to use. "
