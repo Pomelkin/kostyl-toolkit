@@ -22,12 +22,11 @@ logger = setup_logger(fmt="only_message")
 
 
 class OVERRIDABLE_CONFIG_KWARGS(TypedDict, total=False):  # noqa: D101, N801
-    scheduler_type: SCHEDULER | None
-
+    scheduler_type: SCHEDULER
     freeze_ratio: float | None
     warmup_ratio: float | None
     warmup_value: float | None
-    base_value: float | None
+    base_value: float
     final_value: float | None
     plateau_ratio: float | None
 
@@ -79,6 +78,7 @@ def create_scheduler(
         lookup_scheduler_type = "plateau"
     else:
         lookup_scheduler_type = scheduler_type
+
     scheduler_cls = SCHEDULER_MAPPING[lookup_scheduler_type]  # type: ignore
 
     if issubclass(scheduler_cls, PlateauWithAnnealingScheduler):
