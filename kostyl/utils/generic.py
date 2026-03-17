@@ -1,4 +1,7 @@
+from pathlib import Path
 from typing import Any
+
+import yaml
 
 
 def convert_to_flat_dict(
@@ -38,3 +41,24 @@ def flattened_dict_to_nested(
 
         d[parts[-1]] = value
     return result
+
+
+def load_config(path: Path | str) -> dict:
+    """Load a configuration from file."""
+    if isinstance(path, str):
+        path = Path(path)
+
+    if not path.is_file():
+        raise ValueError(f"Config file {path} does not exist or is not a file.")
+
+    match path.suffix:
+        case ".yaml" | ".yml":
+            config = yaml.safe_load(path.open("r"))
+        case _:
+            raise ValueError(f"Unsupported config file format: {path.suffix}")
+    return config
+
+
+def is_overridden(cls: type, method_name: str) -> bool:
+    """Check if a method is overridden in a subclass."""
+    return method_name in cls.__dict__

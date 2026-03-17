@@ -22,8 +22,7 @@ if TYPE_CHECKING:
     class KostylLogger(Logger):  # noqa: D101
         def log_once(self, level: str, message: str, *args, **kwargs) -> None: ...  # noqa: ANN003, D102
         def warning_once(self, message: str, *args, **kwargs) -> None: ...  # noqa: ANN003, D102
-else:
-    KostylLogger = type(_base_logger)
+
 
 try:
     from torch.nn.modules.module import (
@@ -62,8 +61,8 @@ def _log_once(self: KostylLogger, level: str, message: str, *args, **kwargs) -> 
 
 
 _base_logger = cast(KostylLogger, _base_logger)
-_base_logger.log_once = _log_once  # pyright: ignore[reportAttributeAccessIssue]
-_base_logger.warning_once = partialmethod(_log_once, "WARNING")  # pyright: ignore[reportAttributeAccessIssue]
+_base_logger.log_once = _log_once
+_base_logger.warning_once = partialmethod(_log_once, "WARNING")  # pyrefly: ignore
 
 
 def _caller_filename() -> str:
