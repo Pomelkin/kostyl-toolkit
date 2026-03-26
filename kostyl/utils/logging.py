@@ -9,19 +9,16 @@ from copy import deepcopy
 from functools import partialmethod
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING
 from typing import Literal
 from typing import cast
 
+from loguru import Logger
 from loguru import logger as _base_logger
 
 
-if TYPE_CHECKING:
-    from loguru import Logger
-
-    class KostylLogger(Logger):  # noqa: D101
-        def log_once(self, level: str, message: str, *args, **kwargs) -> None: ...  # noqa: ANN003, D102
-        def warning_once(self, message: str, *args, **kwargs) -> None: ...  # noqa: ANN003, D102
+class KostylLogger(Logger):  # noqa: D101
+    def log_once(self, level: str, message: str, *args, **kwargs) -> None: ...  # noqa: ANN003, D102
+    def warning_once(self, message: str, *args, **kwargs) -> None: ...  # noqa: ANN003, D102
 
 
 try:
