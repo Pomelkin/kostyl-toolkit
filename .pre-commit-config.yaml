@@ -57,11 +57,19 @@ repos:
   - id: hadolint-docker
     types_or: [ dockerfile ]
 
+- repo: https://github.com/facebook/pyrefly-pre-commit
+  rev: 0.56.0
+  hooks:
+  - id: pyrefly-check
+    name: Pyrefly (type checking)
+    pass_filenames: false # Recommended to do full repo checks. However, you can change this to `true` to only check changed files
+    language: system # Use system-installed pyrefly
+
 - repo: https://github.com/docker-compose-linter/pre-commit-dclint
   rev: v3.0.0 # Matches the dclint version, use the sha or tag you want to point at
   hooks:
-    - id: dclint
-      # Optional: regex override for compose files
-      files: ^(docker-)?compose\.ya?ml$
-      # Optional: enable autofix on commit
-      args: [ --fix ]
+  - id: dclint
+    # Optional: regex override for compose files
+    files: ^(docker-)?compose\.ya?ml$
+    # Optional: enable autofix on commit
+    args: [ --fix ]
