@@ -2,7 +2,7 @@ from pathlib import Path
 
 from pydantic import BaseModel as PydanticBaseModel
 
-from kostyl.utils.fs import load_config
+from kostyl.utils.generic import load_config
 
 
 class ConfigLoadingMixin[TConfig: PydanticBaseModel]:

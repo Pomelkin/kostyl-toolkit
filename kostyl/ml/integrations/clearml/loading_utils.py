@@ -7,7 +7,8 @@ from clearml import Task
 from transformers import AutoModel
 from transformers import AutoTokenizer
 from transformers import PreTrainedModel
-from transformers import PreTrainedTokenizerBase
+from transformers import SentencePieceBackend
+from transformers import TokenizersBackend
 
 
 try:
@@ -34,7 +35,7 @@ def load_tokenizer_from_clearml(
     task: Task | None = None,
     ignore_remote_overrides: bool = True,
     name: str | None = None,
-) -> tuple[PreTrainedTokenizerBase, InputModel]:
+) -> tuple[SentencePieceBackend | TokenizersBackend, InputModel]:
     """
     Retrieve a Hugging Face tokenizer stored in a ClearML.
 
@@ -61,6 +62,10 @@ def load_tokenizer_from_clearml(
     tokenizer = AutoTokenizer.from_pretrained(
         clearml_tokenizer.get_local_copy(raise_on_error=True)
     )
+    if tokenizer is None:
+        raise ValueError(
+            f"Failed to load tokenizer from ClearML InputModel with id: {model_id}"
+        )
     return tokenizer, clearml_tokenizer
 
 

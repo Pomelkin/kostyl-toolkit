@@ -150,7 +150,7 @@ class LightningCheckpointLoaderMixin:
             pretrained_model_name_or_path=None,
             config=config,
             state_dict=state_dict,
-            **from_pretrained_kwargs,
+            **from_pretrained_kwargs,  # type: ignore
         )
 
         return model

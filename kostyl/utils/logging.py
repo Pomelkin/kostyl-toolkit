@@ -9,11 +9,17 @@ from copy import deepcopy
 from functools import partialmethod
 from pathlib import Path
 from threading import Lock
+from typing import TYPE_CHECKING
 from typing import Literal
 from typing import cast
 
-from loguru import Logger
 from loguru import logger as _base_logger
+
+
+if TYPE_CHECKING:
+    from loguru import Logger
+else:
+    Logger = object
 
 
 class KostylLogger(Logger):  # noqa: D101
@@ -22,9 +28,7 @@ class KostylLogger(Logger):  # noqa: D101
 
 
 try:
-    from torch.nn.modules.module import (
-        _IncompatibleKeys,  # pyright: ignore[reportAssignmentType]
-    )
+    from torch.nn.modules.module import _IncompatibleKeys
 except Exception:
 
     class _IncompatibleKeys(
