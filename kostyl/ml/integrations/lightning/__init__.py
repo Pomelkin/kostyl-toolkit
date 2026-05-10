@@ -7,8 +7,8 @@ except ImportError as e:
     ) from e
 
 
-from .mixins import LightningCheckpointLoaderMixin
-from .module import KostylLightningModule
+from .checkpoint_mixin import LightningCheckpointLoaderMixin
+from .kostyl_module import KostylLightningModule
 from .utils import estimate_total_steps
 
 

@@ -9,7 +9,7 @@ from kostyl.utils.logging import KostylLogger
 from kostyl.utils.logging import setup_logger
 
 
-module_logger = setup_logger(fmt="default")
+module_logger = setup_logger(fmt="default", name="dist_utils.generic")
 
 
 def log_dist(

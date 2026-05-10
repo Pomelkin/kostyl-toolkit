@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any
+from typing import TypeVar
 from typing import cast
 
 import torch
@@ -11,19 +12,21 @@ from kostyl.utils.logging import setup_logger
 
 logger = setup_logger("LightningPretrainedModelMixin", fmt="only_message")
 
+TModel = TypeVar("TModel", bound=PreTrainedModel)
+
 
 class LightningCheckpointLoaderMixin:
     """A mixin class for loading pretrained models from PyTorch Lightning checkpoints."""
 
     @classmethod
-    def from_lightning_checkpoint[TModelInstance: PreTrainedModel](  # noqa: C901
-        cls: type[TModelInstance],
+    def from_lightning_checkpoint(  # noqa: C901
+        cls: type[TModel],
         checkpoint_path: str | Path,
         config_key: str = "config",
         weights_prefix: str | None = "model.",
         strict_prefix: bool = False,
         **kwargs: Any,
-    ) -> TModelInstance:
+    ) -> TModel:
         """
         Load a model from a Lightning checkpoint file.
 
@@ -144,6 +147,8 @@ class LightningCheckpointLoaderMixin:
                     )
         else:
             state_dict = raw_state_dict
+
+        from_pretrained_kwargs.update(kwargs)
 
         # Instantiate model and load state dict
         model = cls.from_pretrained(

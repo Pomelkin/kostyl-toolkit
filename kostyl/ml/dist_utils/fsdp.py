@@ -13,8 +13,8 @@ from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
 from transformers import PreTrainedModel
 
-from kostyl.ml.configs.training_settings import FSDP1StrategyConfig
-from kostyl.ml.configs.training_settings import FSDP2StrategyConfig
+from kostyl.ml.configs.structs.training_settings import FSDP1StrategyConfig
+from kostyl.ml.configs.structs.training_settings import FSDP2StrategyConfig
 from kostyl.utils import setup_logger
 
 

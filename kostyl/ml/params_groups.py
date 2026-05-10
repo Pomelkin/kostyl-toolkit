@@ -3,7 +3,7 @@ from typing import Any
 from torch import nn
 
 
-def create_params_groups(
+def create_param_groups(
     model: nn.Module,
     weight_decay: float,
     lr: float,
@@ -30,7 +30,7 @@ def create_params_groups(
             name contains any of these keywords, its weight decay is set to 0.0.
             If keywords are provided, they will be added to the default set, otherwise the default set is used.
             Default set of keywords:
-            {"norm", "bias", "embedding", "tokenizer", "ln", "scale"}.
+            {"bias", "emb", "ln"}.
 
     Returns:
         list[dict]: A list of dictionaries, where each dictionary represents a parameter group
@@ -41,12 +41,9 @@ def create_params_groups(
 
     """
     no_decay_keywords_ = {
-        "norm",
         "bias",
-        "embedding",
-        "tokenizer",
+        "emb",
         "ln",
-        "scale",
     }
     if no_decay_keywords is not None:
         no_decay_keywords_ = no_decay_keywords_.union(no_decay_keywords)
@@ -60,16 +57,13 @@ def create_params_groups(
         if param.requires_grad is False:
             continue
 
-        if any(keyword in name for keyword in no_lr_keywords_):
-            lr_ = 0.0
-        else:
-            lr_ = lr
-        param_group = {"params": param, "lr": lr_}
-
-        if any(keyword in name for keyword in no_decay_keywords_):
-            param_group["weight_decay"] = 0.0
-        else:
-            param_group["weight_decay"] = weight_decay
+        lr_ = 0.0 if any(keyword in name for keyword in no_lr_keywords_) else lr
+        weight_decay_ = (
+            0.0
+            if any(keyword in name for keyword in no_decay_keywords_)
+            else weight_decay
+        )
+        param_group = {"params": param, "lr": lr_, "weight_decay": weight_decay_}
         param_groups.append(param_group)
 
     fused_param_groups = _fuse_groups(param_groups)
@@ -77,17 +71,21 @@ def create_params_groups(
 
 
 def _fuse_groups(param_groups: list[dict]) -> list[dict]:
-    fuse_dict: dict[str, dict[str, Any]] = {}
+    fused_groups_dict: dict[str, dict[str, Any]] = {}
     for group in param_groups:
         group_key = ""
         for key, value in group.items():
             if key != "params":
                 group_key += f"_{key}:{value}"
 
-        if group_key not in fuse_dict:
-            fuse_dict[group_key] = {"params": []}
+        if group_key not in fused_groups_dict:
+            fused_groups_dict[group_key] = {"params": []}
             for k, v in group.items():
                 if k != "params":
-                    fuse_dict[group_key][k] = v
-        fuse_dict[group_key]["params"].append(group["params"])
-    return list(fuse_dict.values())
+                    fused_groups_dict[group_key][k] = v
+
+        fused_groups_dict[group_key]["params"].append(group["params"])
+    return list(fused_groups_dict.values())
+
+
+create_params_groups = create_param_groups  # Alias for backward compatibility

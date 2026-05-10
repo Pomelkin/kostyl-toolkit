@@ -12,8 +12,8 @@ from .dataset_utils import download_clearml_datasets
 from .dataset_utils import get_datasets_paths
 from .loading_utils import load_model_from_clearml
 from .loading_utils import load_tokenizer_from_clearml
-from .version_utils import find_version_in_tags
-from .version_utils import increment_version
+from .versioning_utils import find_version_in_tags
+from .versioning_utils import increment_version
 
 
 __all__ = [

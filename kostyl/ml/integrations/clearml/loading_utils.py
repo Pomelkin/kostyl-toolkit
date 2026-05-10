@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any
+from typing import TypeVar
 from typing import cast
 
 from clearml import InputModel
@@ -31,7 +32,7 @@ except ImportError:
 
 
 def load_tokenizer_from_clearml(
-    model_id: str,
+    tokenizer_id: str,
     task: Task | None = None,
     ignore_remote_overrides: bool = True,
     name: str | None = None,
@@ -40,7 +41,7 @@ def load_tokenizer_from_clearml(
     Retrieve a Hugging Face tokenizer stored in a ClearML.
 
     Args:
-        model_id (str): The ClearML InputModel identifier that holds the tokenizer artifacts.
+        tokenizer_id (str): The ClearML InputModel identifier that holds the tokenizer artifacts.
         task (Task | None, optional): An optional ClearML Task used to associate and sync
             the model. Defaults to None.
         ignore_remote_overrides (bool, optional): Whether to ignore remote hyperparameter
@@ -53,7 +54,7 @@ def load_tokenizer_from_clearml(
             of the referenced ClearML InputModel and the ClearML InputModel instance.
 
     """
-    clearml_tokenizer = InputModel(model_id=model_id)
+    clearml_tokenizer = InputModel(model_id=tokenizer_id)
     if task is not None:
         clearml_tokenizer.connect(
             task, ignore_remote_overrides=ignore_remote_overrides, name=name
@@ -64,14 +65,17 @@ def load_tokenizer_from_clearml(
     )
     if tokenizer is None:
         raise ValueError(
-            f"Failed to load tokenizer from ClearML InputModel with id: {model_id}"
+            f"Failed to load tokenizer from ClearML InputModel with id: {tokenizer_id}"
         )
     return tokenizer, clearml_tokenizer
 
 
-def load_model_from_clearml[
-    TModel: PreTrainedModel | LightningCheckpointLoaderMixin | AutoModel
-](
+TModel = TypeVar(
+    "TModel", bound=PreTrainedModel | LightningCheckpointLoaderMixin | AutoModel
+)
+
+
+def load_model_from_clearml(
     model_id: str,
     model: type[TModel],
     task: Task | None = None,

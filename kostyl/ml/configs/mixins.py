@@ -1,11 +1,15 @@
 from pathlib import Path
+from typing import TypeVar
 
 from pydantic import BaseModel as PydanticBaseModel
 
 from kostyl.utils.generic import load_config
 
 
-class ConfigLoadingMixin[TConfig: PydanticBaseModel]:
+TConfig = TypeVar("TConfig", bound=PydanticBaseModel)
+
+
+class ConfigLoadingMixin:
     """Mixin providing configuration loading functionality for Pydantic models."""
 
     @classmethod

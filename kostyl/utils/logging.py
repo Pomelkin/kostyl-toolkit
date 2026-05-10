@@ -6,7 +6,6 @@ import sys
 import uuid
 from collections import namedtuple
 from copy import deepcopy
-from functools import partialmethod
 from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING
@@ -61,9 +60,15 @@ def _log_once(self: KostylLogger, level: str, message: str, *args, **kwargs) -> 
     return
 
 
+def _warning_once(self: KostylLogger, message: str, *args, **kwargs) -> None:  # noqa: ANN003
+    self.log_once("WARNING", message, *args, **kwargs)
+    return
+
+
 _base_logger = cast(KostylLogger, _base_logger)
-_base_logger.log_once = _log_once
-_base_logger.warning_once = partialmethod(_log_once, "WARNING")  # pyrefly: ignore
+_logger_cls = type(_base_logger)
+_logger_cls.log_once = _log_once
+_logger_cls.warning_once = _warning_once
 
 
 def _caller_filename() -> str:
