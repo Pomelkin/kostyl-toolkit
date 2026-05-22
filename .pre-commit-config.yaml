@@ -17,13 +17,13 @@ repos:
   - id: debug-statements
 
 - repo: https://github.com/asottile/pyupgrade
-  rev: v3.21.0
+  rev: v3.21.2
   hooks:
   - id: pyupgrade
     args: [ --py312-plus ]
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.3
+  rev: v0.15.14
   hooks:
   - id: ruff-format
     name: ruff format
@@ -41,12 +41,12 @@ repos:
     args: [ "check", "--select", "I", "--fix" ]
 
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.4.1
+  rev: v2.4.2
   hooks:
   - id: codespell
 
 - repo: https://github.com/astral-sh/uv-pre-commit
-  rev: 0.9.7
+  rev: 0.11.16
   hooks:
   - id: uv-lock
   - id: uv-export
@@ -57,16 +57,16 @@ repos:
   - id: hadolint-docker
     types_or: [ dockerfile ]
 
-- repo: https://github.com/facebook/pyrefly-pre-commit
-  rev: 0.56.0
+- repo: https://github.com/allganize/ty-pre-commit
+  # Ty version.
+  rev: v0.0.38
   hooks:
-  - id: pyrefly-check
-    name: Pyrefly (type checking)
-    pass_filenames: false # Recommended to do full repo checks. However, you can change this to `true` to only check changed files
-    language: system # Use system-installed pyrefly
+  # Run the type checker.
+  - id: ty-check
+    types_or: [ python, pyi ]
 
 - repo: https://github.com/docker-compose-linter/pre-commit-dclint
-  rev: v3.0.0 # Matches the dclint version, use the sha or tag you want to point at
+  rev: v3.1.0 # Matches the dclint version, use the sha or tag you want to point at
   hooks:
   - id: dclint
     # Optional: regex override for compose files
