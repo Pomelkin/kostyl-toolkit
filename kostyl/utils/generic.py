@@ -1,8 +1,6 @@
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 
 def convert_to_flat_dict(
     nested_dict: dict[str, Any], parent_key: str = "", sep: str = "."
@@ -43,19 +41,25 @@ def flattened_dict_to_nested(
     return result
 
 
-def load_config(path: Path | str) -> dict:
-    """Load a configuration from file."""
+def load_file(path: Path | str) -> dict:
+    """Load a file from the specified path."""
     if isinstance(path, str):
         path = Path(path)
 
     if not path.is_file():
-        raise ValueError(f"Config file {path} does not exist or is not a file.")
+        raise ValueError(f"File {path} does not exist or is not a file.")
 
     match path.suffix:
         case ".yaml" | ".yml":
+            import yaml
+
             config = yaml.safe_load(path.open("r"))
+        case ".json":
+            import orjson
+
+            config = orjson.loads(path.read_bytes())
         case _:
-            raise ValueError(f"Unsupported config file format: {path.suffix}")
+            raise ValueError(f"Unsupported file format: {path.suffix}")
     return config
 
 

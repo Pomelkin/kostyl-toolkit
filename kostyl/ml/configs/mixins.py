@@ -3,7 +3,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel as PydanticBaseModel
 
-from kostyl.utils.generic import load_config
+from kostyl.utils.generic import load_file
 
 
 TConfig = TypeVar("TConfig", bound=PydanticBaseModel)
@@ -28,7 +28,7 @@ class ConfigLoadingMixin:
             An instance of the class created from the configuration file.
 
         """
-        config = load_config(path)
+        config = load_file(path)
         instance = cls.model_validate(config)
         return instance
 

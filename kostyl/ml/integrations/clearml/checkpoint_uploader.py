@@ -83,7 +83,7 @@ class ClearMLCheckpointUploader(ModelCheckpointUploader):
         model_name_with_timestamp = f"{self.model_name}_{timestamp}"
         model = OutputModel(
             name=model_name_with_timestamp,
-            **self.model_fabric_kwargs,
+            **self.model_fabric_kwargs,  # ty:ignore[invalid-argument-type]
         )
         return model
 
@@ -91,7 +91,7 @@ class ClearMLCheckpointUploader(ModelCheckpointUploader):
         if self._output_model is None:
             self._output_model = OutputModel(
                 name=self.model_name,
-                **self.model_fabric_kwargs,
+                **self.model_fabric_kwargs,  # ty:ignore[invalid-argument-type]
             )
         model = self._output_model
         return model

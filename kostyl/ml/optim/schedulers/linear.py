@@ -13,21 +13,74 @@ class _LinearScheduleBase(BaseScheduler):
         self,
         param_name: str,
         num_iters: int,
-        initial_value: float,
+        base_value: float,
         final_value: float,
+        warmup_ratio: float | None = None,
+        warmup_value: float | None = None,
+        freeze_ratio: float | None = None,
     ) -> None:
+        if warmup_ratio is not None:
+            if not (0 < warmup_ratio < 1):
+                raise ValueError(f"Warmup ratio must be in (0, 1), got {warmup_ratio}.")
+        if (warmup_value is None) != (warmup_ratio is None):
+            raise ValueError(
+                "Both warmup_ratio and warmup_value must be provided or neither."
+            )
+        if freeze_ratio is not None:
+            if not (0 < freeze_ratio < 1):
+                raise ValueError(f"Freeze ratio must be in (0, 1), got {freeze_ratio}.")
+        pre_annealing_ratio = (warmup_ratio if warmup_ratio is not None else 0) + (
+            freeze_ratio if freeze_ratio is not None else 0
+        )
+        if pre_annealing_ratio > 1:
+            raise ValueError(
+                "The sum of warmup_ratio and freeze_ratio must <= 1, got "
+                f"{pre_annealing_ratio}."
+            )
+
         self.param_name = param_name
         self.num_iters = num_iters
-        self.initial_value = initial_value
+        self.base_value = base_value
         self.final_value = final_value
+        self.warmup_ratio = warmup_ratio
+        self.warmup_value = warmup_value
+        self.freeze_ratio = freeze_ratio
 
         self.scheduled_values: npt.NDArray[np.float64] = np.array([], dtype=np.float64)
-        self.current_value_ = self.initial_value
+        self.current_value_ = self.base_value
         return
 
     def _create_scheduler(self) -> None:
-        self.scheduled_values = np.linspace(
-            self.initial_value, self.final_value, num=self.num_iters, dtype=np.float64
+        # Create freeze schedule
+        if self.freeze_ratio is not None:
+            freeze_iters = int(self.num_iters * self.freeze_ratio)
+            freeze_schedule = np.zeros(freeze_iters, dtype=np.float64)
+        else:
+            freeze_iters = 0
+            freeze_schedule = np.array([], dtype=np.float64)
+
+        # Create linear warmup schedule
+        if self.warmup_ratio is not None and self.warmup_value is not None:
+            warmup_iters = int(self.num_iters * self.warmup_ratio)
+            warmup_schedule = np.linspace(
+                self.warmup_value, self.base_value, warmup_iters, dtype=np.float64
+            )
+        else:
+            warmup_iters = 0
+            warmup_schedule = np.array([], dtype=np.float64)
+
+        # Create linear schedule
+        linear_iters = self.num_iters - warmup_iters - freeze_iters
+        if linear_iters > 0:
+            linear_schedule = np.linspace(
+                self.base_value, self.final_value, linear_iters, dtype=np.float64
+            )
+        else:
+            linear_schedule = np.array([], dtype=np.float64)
+
+        # Concatenate all parts of the schedule
+        self.scheduled_values = np.concatenate(
+            (freeze_schedule, warmup_schedule, linear_schedule)
         )
         self._verify()
         return
@@ -68,8 +121,11 @@ class LinearScheduler(_LinearScheduleBase):
         optimizer: torch.optim.Optimizer,
         param_group_field: str,
         num_iters: int,
-        initial_value: float,
+        base_value: float,
         final_value: float,
+        warmup_ratio: float | None = None,
+        warmup_value: float | None = None,
+        freeze_ratio: float | None = None,
         multiplier_field: str | None = None,
         skip_if_zero: bool = False,
         apply_if_field: str | None = None,
@@ -82,8 +138,11 @@ class LinearScheduler(_LinearScheduleBase):
             optimizer: Optimizer whose param groups are updated in-place.
             param_group_field: Name of the field that receives the scheduled value.
             num_iters: Number of scheduler iterations before clamping at ``final_value``.
-            initial_value: Value used on the first iteration.
+            base_value: Value used on the first non-warmup linear step.
             final_value: Value used once ``num_iters`` iterations are consumed.
+            warmup_ratio: Optional fraction of iterations to linearly ramp from ``warmup_value`` to ``base_value``.
+            warmup_value: Starting value for the warmup ramp.
+            freeze_ratio: Optional fraction of iterations to keep the value frozen at zero at the beginning.
             multiplier_field: Optional per-group multiplier applied to the scheduled value.
                 if specified, but not found in a group, multiplier of 1.0 is assumed for that group.
             skip_if_zero: Leave groups untouched when their target field equals zero.
@@ -99,8 +158,11 @@ class LinearScheduler(_LinearScheduleBase):
         super().__init__(
             param_name=param_group_field,
             num_iters=num_iters,
-            initial_value=initial_value,
+            base_value=base_value,
             final_value=final_value,
+            warmup_ratio=warmup_ratio,
+            warmup_value=warmup_value,
+            freeze_ratio=freeze_ratio,
         )
         self.param_group_field = param_group_field
         return

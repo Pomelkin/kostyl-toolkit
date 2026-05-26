@@ -109,8 +109,11 @@ def create_scheduler(
             optimizer=optim,
             param_group_field=param_group_field,
             num_iters=num_iters,
-            initial_value=base_value,
+            base_value=base_value,
             final_value=final_value,  # type: ignore
+            warmup_ratio=warmup_ratio,
+            warmup_value=warmup_value,
+            freeze_ratio=freeze_ratio,
             multiplier_field=multiplier_field,
             skip_if_zero=skip_if_zero,
             apply_if_field=apply_if_field,

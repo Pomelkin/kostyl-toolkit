@@ -7,7 +7,7 @@ from clearml import Task
 
 from kostyl.utils import convert_to_flat_dict
 from kostyl.utils import flattened_dict_to_nested
-from kostyl.utils import load_config
+from kostyl.utils import load_file
 
 
 class ConfigSyncingClearmlMixin:
@@ -80,7 +80,7 @@ class ConfigSyncingClearmlMixin:
         """
         name = alias if alias is not None else snakecase(cls.__name__)
 
-        config = load_config(path)
+        config = load_file(path)
 
         flattened_config = convert_to_flat_dict(config)
         task.connect(flattened_config, name=pascalcase(name))

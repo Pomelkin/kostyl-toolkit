@@ -11,7 +11,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 
 from kostyl.ml.base_uploader import ModelCheckpointUploader
 from kostyl.ml.configs import CheckpointConfig
-from kostyl.ml.dist_utils import is_local_zero_rank
+from kostyl.ml.dist_utils import is_local_rank_zero
 from kostyl.utils import setup_logger
 
 
@@ -328,7 +328,7 @@ def setup_checkpoint_callback(
         )
 
     if dirpath.exists():
-        if is_local_zero_rank():
+        if is_local_rank_zero():
             logger.warning(f"Checkpoint directory {dirpath} already exists.")
             if remove_folder_if_exists:
                 rmtree(dirpath)
