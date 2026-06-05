@@ -21,8 +21,13 @@ def format_metric_names(
 
     if prefix is None:
         prefix = ""
+    elif prefix.endswith("/"):
+        prefix = prefix[:-1]
+
     if suffix is None:
         suffix = ""
+    elif suffix.startswith("/"):
+        suffix = suffix[1:]
 
     new_metrics_dict: dict[str, MetricTypeT] = {}
     for key, value in metrics.items():

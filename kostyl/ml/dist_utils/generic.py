@@ -75,7 +75,8 @@ def get_local_rank() -> int | None:
 
 def is_local_rank_zero() -> bool:
     """Checks if the current process is the main process (rank 0) for the local node in a distributed environment."""
-    return get_local_rank() == 0 or get_local_rank() is None
+    local_rank = get_local_rank() or 0
+    return local_rank == 0
 
 
 def get_global_rank(group: dist.ProcessGroup | None = None) -> int | None:

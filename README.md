@@ -5,7 +5,7 @@ Kickass Orchestration System for Training, Yielding & Logging — a batteries-in
 ## Overview
 - Rapidly bootstrap Lightning experiments with opinionated defaults (`KostylLightningModule`, custom schedulers, grad clipping and metric formatting).
 - Keep model configs source-controlled via Pydantic mixins, with ClearML syncing out of the box (`ConfigLoadingMixin`, `ClearMLConfigMixin`).
-- Reuse Lightning checkpoints directly inside Transformers models through `LightningCheckpointLoaderMixin`.
+- Reuse Lightning checkpoints directly inside Transformers models through `LightningCheckpointModelMixin`.
 - Ship distributed-friendly utilities (deterministic logging, FSDP helpers, LR scaling, ClearML tag management).
 
 ## Installation
@@ -31,7 +31,7 @@ from transformers import AutoModelForSequenceClassification
 
 from kostyl.ml_core.configs.hyperparams import HyperparamsConfig
 from kostyl.ml_core.configs.training_params import TrainingParams
-from kostyl.ml_core.lightning.extenstions.custom_module import KostylLightningModule
+from kostyl.ml_core.lightning.extensions.custom_module import KostylLightningModule
 
 
 class TextClassifier(KostylLightningModule):
@@ -59,10 +59,10 @@ trainer.fit(module)
 
 Restoring a plain Transformers model from a Lightning checkpoint:
 ```python
-from kostyl.ml_core.lightning.extenstions.pretrained_model import LightningCheckpointLoaderMixin
+from kostyl.ml.integrations.lightning import LightningCheckpointModelMixin
 
 
-model = LightningCheckpointLoaderMixin.from_lighting_checkpoint(
+model = LightningCheckpointModelMixin.from_lightning_checkpoint(
 		"checkpoints/epoch=03-step=500.ckpt",
 		config_key="config",
 		weights_prefix="model.",

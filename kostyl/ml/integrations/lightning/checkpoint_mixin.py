@@ -4,18 +4,18 @@ from typing import TypeVar
 from typing import cast
 
 import torch
-from transformers import PretrainedConfig
-from transformers import PreTrainedModel
+from transformers.configuration_utils import PreTrainedConfig
+from transformers.modeling_utils import PreTrainedModel
 
 from kostyl.utils.logging import setup_logger
 
 
-logger = setup_logger("LightningPretrainedModelMixin", fmt="only_message")
+logger = setup_logger("LightningCheckpointModelMixin", fmt="only_message")
 
 TModel = TypeVar("TModel", bound=PreTrainedModel)
 
 
-class LightningCheckpointLoaderMixin:
+class LightningCheckpointModelMixin:
     """A mixin class for loading pretrained models from PyTorch Lightning checkpoints."""
 
     @classmethod
@@ -57,6 +57,24 @@ class LightningCheckpointLoaderMixin:
             FileNotFoundError: If the checkpoint file does not exist.
 
         """
+        if isinstance(checkpoint_path, str):
+            checkpoint_path = Path(checkpoint_path)
+
+        if checkpoint_path.is_dir():
+            raise ValueError(f"{checkpoint_path} is a directory")
+        if not checkpoint_path.exists():
+            raise FileNotFoundError(f"{checkpoint_path} does not exist")
+        if checkpoint_path.suffix != ".ckpt":
+            raise ValueError(f"{checkpoint_path} is not a .ckpt file")
+
+        if weights_prefix is None:
+            weights_prefix = ""
+
+        if weights_prefix == "" and strict_prefix:
+            logger.warning(
+                "strict_prefix=True has no effect when weights_prefix is empty or None."
+            )
+
         from_pretrained_kwargs = {
             "proxies": kwargs.pop("proxies", None),
             "output_loading_info": kwargs.pop("output_loading_info", False),
@@ -87,23 +105,6 @@ class LightningCheckpointLoaderMixin:
             "attn_implementation": kwargs.pop("attn_implementation", None),
         }
 
-        if isinstance(checkpoint_path, str):
-            checkpoint_path = Path(checkpoint_path)
-        if weights_prefix is None:
-            weights_prefix = ""
-
-        if weights_prefix == "" and strict_prefix:
-            logger.warning(
-                "strict_prefix=True has no effect when weights_prefix is empty or None."
-            )
-
-        if checkpoint_path.is_dir():
-            raise ValueError(f"{checkpoint_path} is a directory")
-        if not checkpoint_path.exists():
-            raise FileNotFoundError(f"{checkpoint_path} does not exist")
-        if checkpoint_path.suffix != ".ckpt":
-            raise ValueError(f"{checkpoint_path} is not a .ckpt file")
-
         checkpoint_dict = torch.load(
             checkpoint_path,
             map_location="cpu",
@@ -112,7 +113,7 @@ class LightningCheckpointLoaderMixin:
         )
 
         # Load config
-        config_cls = cast(type[PretrainedConfig], cls.config_class)
+        config_cls = cast(type[PreTrainedConfig], cls.config_class)
         config_dict = checkpoint_dict[config_key]
         config_dict.update(kwargs)
         config = config_cls.from_dict(config_dict)
@@ -157,5 +158,57 @@ class LightningCheckpointLoaderMixin:
             state_dict=state_dict,
             **from_pretrained_kwargs,  # type: ignore
         )
-
         return model
+
+
+TConfig = TypeVar("TConfig", bound=PreTrainedConfig)
+
+
+class LightningCheckpointConfigMixin:
+    """Mixin for loading Hugging Face configs from PyTorch Lightning checkpoints."""
+
+    @classmethod
+    def from_lightning_checkpoint(
+        cls: type[TConfig],
+        checkpoint_path: str | Path,
+        config_key: str = "config",
+        **kwargs: Any,
+    ) -> TConfig:
+        """
+        Load a configuration instance from a Lightning checkpoint file.
+
+        This class method reads a PyTorch Lightning checkpoint and extracts the
+        serialized model configuration stored under `config_key`. The extracted
+        dictionary is passed to the config class' `from_dict` constructor together
+        with any additional keyword arguments.
+
+        Note:
+            The method uses `torch.load` with `map_location="meta"` and
+            `weights_only=False`, so tensors from the checkpoint are not materialized
+            on CPU while the checkpoint metadata is read.
+
+        Args:
+            cls (type[TConfig]): The configuration class to instantiate.
+            checkpoint_path (str | Path): Path to the Lightning checkpoint file.
+            config_key (str, optional): Key in the checkpoint dictionary where the config is stored.
+                Defaults to "config".
+            kwargs: Additional keyword arguments to pass to the config class'
+                `from_dict` method.
+
+        Returns:
+            TConfig: The loaded configuration instance.
+
+        """
+        checkpoint_dict = torch.load(
+            checkpoint_path,
+            map_location="meta",
+            weights_only=False,
+        )
+        config_dict = checkpoint_dict[config_key]
+        config_instance = cls.from_dict(config_dict, **kwargs)
+        return config_instance
+
+
+LightningCheckpointLoaderMixin = LightningCheckpointModelMixin
+LightningCheckpointModelLoaderMixin = LightningCheckpointModelMixin
+LightningCheckpointConfigLoaderMixin = LightningCheckpointConfigMixin
