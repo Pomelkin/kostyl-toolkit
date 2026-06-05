@@ -15,7 +15,7 @@ from torchmetrics import MetricCollection
 from transformers import PretrainedConfig
 from transformers import PreTrainedModel
 
-from kostyl.ml.integrations.lightning.metrics_formatting import apply_suffix
+from kostyl.ml.integrations.lightning.metrics_formatting import format_metric_names
 from kostyl.ml.optim.schedulers import BaseScheduler
 from kostyl.utils import is_overridden
 from kostyl.utils import setup_logger
@@ -78,7 +78,7 @@ class KostylLightningModule(L.LightningModule):
     @override
     def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         cfg = self.get_configuration_dict()
-        checkpoint["kostyl_config"].update(cfg)
+        checkpoint.update(cfg)
         return
 
     @override
@@ -92,8 +92,8 @@ class KostylLightningModule(L.LightningModule):
                 self.parameters(), max_norm=grad_clip_val
             )
         else:
-            module: FSDP = self.trainer.strategy.model  # type: ignore
-            norm = module.clip_grad_norm_(max_norm=grad_clip_val)  # type: ignore
+            module: FSDP = self.trainer.strategy.model  # ty:ignore[invalid-assignment]
+            norm = module.clip_grad_norm_(max_norm=grad_clip_val)
         self.log(
             "grad_norm",
             norm,
@@ -124,9 +124,9 @@ class KostylLightningModule(L.LightningModule):
     ) -> None:
         if stage is not None:
             if not isinstance(dictionary, MetricCollection):
-                dictionary = apply_suffix(
+                dictionary = format_metric_names(
                     metrics=dictionary,
-                    suffix=stage,
+                    prefix=stage,
                     add_dist_rank=False,
                 )
             else:
@@ -165,7 +165,9 @@ class KostylLightningModule(L.LightningModule):
             )
             return
         scheduler_state_dict = scheduler.current_value()
-        scheduler_state_dict = apply_suffix(scheduler_state_dict, "scheduler")
+        scheduler_state_dict = format_metric_names(
+            scheduler_state_dict, prefix="scheduler"
+        )
         self.log_dict(
             scheduler_state_dict,
             prog_bar=False,

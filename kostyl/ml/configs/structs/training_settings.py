@@ -1,7 +1,9 @@
 from typing import Literal
 
+import torch
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import model_validator
 
 from kostyl.utils.logging import setup_logger
 
@@ -85,6 +87,39 @@ class LightningTrainerParameters(BaseModel):
     limit_val_batches: int | float | None = None
     limit_test_batches: int | float | None = None
     limit_predict_batches: int | float | None = None
+
+    @model_validator(mode="after")
+    def _validate_devices_and_accelerator(self) -> "LightningTrainerParameters":
+        match self.accelerator:
+            case "cuda":
+                if not torch.cuda.is_available():
+                    raise ValueError(
+                        "CUDA accelerator specified but no CUDA devices found."
+                    )
+                devices = (
+                    self.devices
+                    if isinstance(self.devices, list)
+                    else list(range(self.devices))
+                )
+                available_devices = torch.cuda.device_count()
+                if not all(0 <= d < available_devices for d in devices):
+                    missing = [d for d in devices if not (0 <= d < available_devices)]
+                    raise ValueError(
+                        f"Requested CUDA devices {missing} are out of range. Available devices: {available_devices}."
+                    )
+            case "mps":
+                if not torch.backends.mps.is_available():
+                    raise ValueError(
+                        "MPS accelerator specified but no MPS devices found."
+                    )
+            case "cpu":
+                if not torch.cpu.is_available():
+                    raise ValueError(
+                        "CPU accelerator specified but no CPU devices found."
+                    )
+            case _:
+                raise ValueError(f"Unsupported accelerator type: {self.accelerator}")
+        return self
 
 
 class EarlyStoppingConfig(BaseModel):

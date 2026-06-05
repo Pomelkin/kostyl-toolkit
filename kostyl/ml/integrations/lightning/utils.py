@@ -1,3 +1,4 @@
+import math
 from typing import cast
 
 import lightning as L
@@ -66,8 +67,8 @@ def estimate_total_steps(
     if trainer.max_epochs is None:
         raise ValueError("Trainer must have `max_epochs` set to estimate total steps.")
 
-    steps_per_epoch = effective_len // trainer.accumulate_grad_batches
-    total_steps = steps_per_epoch * trainer.max_epochs
+    steps_per_epoch = math.ceil(effective_len / trainer.accumulate_grad_batches)
+    total_steps = steps_per_epoch * max(trainer.max_epochs, 1)
 
     logger.info(
         f"Total optimization steps: {total_steps} (Batches per epoch (per GPU): {steps_per_epoch})\n"

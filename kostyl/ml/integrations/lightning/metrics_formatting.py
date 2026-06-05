@@ -1,19 +1,32 @@
 from collections.abc import Mapping
+from typing import TypeVar
 
 import torch.distributed as dist
 from torch import Tensor
 from torchmetrics import Metric
 
 
-def apply_suffix(
-    metrics: Mapping[str, Metric | Tensor | int | float],
-    suffix: str,
+MetricTypeT = TypeVar("MetricTypeT", bound=Metric | Tensor | int | float)
+
+
+def format_metric_names(
+    metrics: Mapping[str, MetricTypeT],
+    prefix: str | None = None,
+    suffix: str | None = None,
     add_dist_rank: bool = False,
-) -> Mapping[str, Metric | Tensor | int | float]:
-    """Add stage prefix to metric names."""
-    new_metrics_dict = {}
+) -> Mapping[str, MetricTypeT]:
+    """Add prefix, suffix, and optionally distributed rank to metric names."""
+    if prefix is None and suffix is None:
+        return metrics
+
+    if prefix is None:
+        prefix = ""
+    if suffix is None:
+        suffix = ""
+
+    new_metrics_dict: dict[str, MetricTypeT] = {}
     for key, value in metrics.items():
-        new_key = f"{suffix}/{key}"
+        new_key = f"{prefix}/{key}/{suffix}"
         if add_dist_rank and dist.is_initialized():
             rank = dist.get_rank()
             new_key = f"{new_key}-rank:{rank}"
@@ -28,7 +41,7 @@ def format_per_class_metrics(
     idx_to_classname: Mapping[int, str] | None = None,
 ) -> Mapping[str, Tensor]:
     """Format per-class metrics by adding a suffix to each class metric."""
-    new_metrics_dict = {}
+    new_metrics_dict: dict[str, Tensor] = {}
     for key, value in metrics.items():
         for i in range(num_classes):
             if idx_to_classname is not None:

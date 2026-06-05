@@ -118,7 +118,7 @@ def load_model_from_clearml(
                 f"Model class {model.__name__} must be a subclass of PreTrainedModel or AutoModel "
                 "to be loaded from a ClearML package directory."
             )
-        model_instance = model.from_pretrained(local_path, **kwargs)  # type: ignore
+        model_instance = model.from_pretrained(local_path, **kwargs)
 
     elif local_path.suffix == ".ckpt":
         if not LIGHTING_MIXIN_AVAILABLE:
@@ -131,7 +131,7 @@ def load_model_from_clearml(
                 f"Model class {model.__name__} is not compatible with Lightning checkpoints "
                 "(must inherit from LightningCheckpointLoaderMixin)."
             )
-        model_instance = model.from_lightning_checkpoint(local_path, **kwargs)  # type: ignore
+        model_instance = model.from_lightning_checkpoint(local_path, **kwargs)
 
     else:
         raise ValueError(

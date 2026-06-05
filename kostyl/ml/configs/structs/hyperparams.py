@@ -112,9 +112,13 @@ class ScheduledParamConfig(BaseModel):
 class Lr(ScheduledParamConfig):
     """Learning rate hyperparameters configuration."""
 
+    pass
+
 
 class WeightDecay(ScheduledParamConfig):
     """Weight decay hyperparameters configuration."""
+
+    pass
 
 
 class HyperparamsConfig(BaseModel):

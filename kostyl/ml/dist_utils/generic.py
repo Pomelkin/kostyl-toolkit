@@ -63,20 +63,19 @@ def scale_lrs_by_world_size(
     return lrs
 
 
-def get_local_rank() -> int:
+def get_local_rank() -> int | None:
     """Gets the local rank of the current process in a distributed environment."""
-    if dist.is_initialized():
-        return dist.get_node_local_rank()
     if "SLURM_LOCALID" in os.environ:
         return int(os.environ["SLURM_LOCALID"])
     if "LOCAL_RANK" in os.environ:
         return int(os.environ["LOCAL_RANK"])
-    return 0
+    # None to differentiate whether an environment variable was set at all
+    return None
 
 
 def is_local_rank_zero() -> bool:
     """Checks if the current process is the main process (rank 0) for the local node in a distributed environment."""
-    return get_local_rank() == 0
+    return get_local_rank() == 0 or get_local_rank() is None
 
 
 def get_global_rank(group: dist.ProcessGroup | None = None) -> int | None:
