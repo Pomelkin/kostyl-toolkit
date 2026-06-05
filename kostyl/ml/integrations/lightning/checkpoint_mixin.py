@@ -22,6 +22,7 @@ class LightningCheckpointModelMixin:
     def from_lightning_checkpoint(  # noqa: C901
         cls: type[TModel],
         checkpoint_path: str | Path,
+        config: PreTrainedConfig | None = None,
         config_key: str = "config",
         weights_prefix: str | None = "model.",
         strict_prefix: bool = False,
@@ -31,23 +32,28 @@ class LightningCheckpointModelMixin:
         Load a model from a Lightning checkpoint file.
 
         This class method loads a pretrained model from a PyTorch Lightning checkpoint file (.ckpt).
-        It extracts the model configuration from the checkpoint, instantiates the model, and loads
-        the state dictionary, handling any incompatible keys.
+        It uses the provided configuration when `config` is not None. Otherwise, it extracts
+        the serialized model configuration from the checkpoint using `config_key`, instantiates
+        the model, and loads the state dictionary.
 
         Note:
             The method uses `torch.load` with `weights_only=False` and `mmap=True` for loading.
             Incompatible keys (missing, unexpected, mismatched) are collected and optionally logged.
 
         Args:
-            cls (type["LightningPretrainedModelMixin"]): The class of the model to instantiate.
+            cls (type[LightningCheckpointModelMixin]): The class of the model to instantiate.
             checkpoint_path (str | Path): Path to the checkpoint file. Must be a .ckpt file.
-            config_key (str, optional): Key in the checkpoint dictionary where the config is stored.
-                Defaults to "config".
+            config (PreTrainedConfig | None, optional): Configuration instance to use for model
+                instantiation. If provided, the checkpoint config is ignored. Defaults to None.
+            config_key (str, optional): Key in the checkpoint dictionary where the serialized
+                config is stored. Used only when `config` is None. Defaults to "config".
             weights_prefix (str | None, optional): Prefix to strip from state dict keys. Defaults to "model.".
                 If not empty and doesn't end with ".", a "." is appended. If empty or None, no prefix stripping will be skipped.
             strict_prefix (bool, optional): If True, drop tensors those keys that do not start with the
                 specified prefix. Defaults to False.
             kwargs: Additional keyword arguments to pass to the model's `from_pretrained` method.
+                When `config` is None, these values are also merged into the checkpoint config
+                before constructing the configuration instance.
 
         Returns:
             TModelInstance: The loaded model instance.
@@ -112,11 +118,12 @@ class LightningCheckpointModelMixin:
             mmap=True,
         )
 
-        # Load config
-        config_cls = cast(type[PreTrainedConfig], cls.config_class)
-        config_dict = checkpoint_dict[config_key]
-        config_dict.update(kwargs)
-        config = config_cls.from_dict(config_dict)
+        if config is None:
+            # Load config
+            config_cls = cast(type[PreTrainedConfig], cls.config_class)
+            config_dict = checkpoint_dict[config_key]
+            config_dict.update(kwargs)
+            config = config_cls.from_dict(config_dict)
 
         raw_state_dict: dict[str, torch.Tensor] = checkpoint_dict["state_dict"]
 
@@ -207,8 +214,3 @@ class LightningCheckpointConfigMixin:
         config_dict = checkpoint_dict[config_key]
         config_instance = cls.from_dict(config_dict, **kwargs)
         return config_instance
-
-
-LightningCheckpointLoaderMixin = LightningCheckpointModelMixin
-LightningCheckpointModelLoaderMixin = LightningCheckpointModelMixin
-LightningCheckpointConfigLoaderMixin = LightningCheckpointConfigMixin
