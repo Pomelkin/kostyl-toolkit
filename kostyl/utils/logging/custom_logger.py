@@ -74,12 +74,12 @@ class KostylLogger(Logger):  # noqa: D101
         self,
         level: str,
         msg: str,
-        rank: int,
+        rank_only: int | None = None,
         process_group: ProcessGroup | None = None,
         *args,
         **kwargs: Any,
     ) -> None:
-        """Log a message exclusively on a specific global rank in a distributed environment."""
+        """Log a distributed message, optionally limiting output to one global rank."""
         raise NotImplementedError(
             "This method is implemented dynamically and should not be called directly."
         )
@@ -125,18 +125,20 @@ def _log_dist(
     self: KostylLogger,
     level: str,
     msg: str,
-    rank: int,
     process_group: ProcessGroup | None = None,
+    rank_only: int | None = None,
     *args,
     **kwargs: Any,
 ) -> None:
     global_rank = get_global_rank(process_group)  # ty:ignore[invalid-argument-type]
 
     if global_rank is not None:
-        msg = f"[rank {rank}] {msg}"
+        msg = f"[rank {global_rank}] {msg}"
 
-    if global_rank is None or global_rank == rank:
-        self.log(level, msg, *args, **kwargs)
+    if rank_only is not None and global_rank is not None and global_rank != rank_only:
+        return
+
+    self.log(level, msg, *args, **kwargs)
     return
 
 
@@ -148,8 +150,8 @@ def _log_rank_zero(
     *args,
     **kwargs: Any,
 ) -> None:
-    global_rank = get_global_rank(process_group)  # ty:ignore[invalid-argument-type]
-    if global_rank is not None and global_rank == 0:
+    global_rank = get_global_rank(process_group) or 0  # ty:ignore[invalid-argument-type]
+    if global_rank == 0:
         msg = f"[rank 0] {msg}"
         self.log(level, msg, *args, **kwargs)
     return
