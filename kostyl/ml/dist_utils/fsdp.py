@@ -21,20 +21,15 @@ from kostyl.utils import setup_logger
 logger = setup_logger()
 
 
-class FSDP1PolicyDict(TypedDict):  # noqa: D101
-    mixed_precision: MixedPrecision
-    cpu_offload: CPUOffload | None
+def _get_optional_attribute(obj: object, attr_name: str | None) -> Any | None:
+    if attr_name is None:
+        return None
+    return getattr(obj, attr_name, None)
 
 
 class FSDP2PolicyDict(TypedDict):  # noqa: D101
     mp_policy: MixedPrecisionPolicy
     offload_policy: CPUOffloadPolicy | OffloadPolicy
-
-
-def _get_optional_attribute(obj: object, attr_name: str | None) -> Any | None:
-    if attr_name is None:
-        return None
-    return getattr(obj, attr_name, None)
 
 
 def get_fsdp2_policies(
@@ -52,6 +47,11 @@ def get_fsdp2_policies(
         else OffloadPolicy(),
     }
     return kwargs  # type: ignore
+
+
+class FSDP1PolicyDict(TypedDict):  # noqa: D101
+    mixed_precision: MixedPrecision
+    cpu_offload: CPUOffload | None
 
 
 def get_fsdp1_policies(
@@ -72,7 +72,7 @@ def get_fsdp1_policies(
     return kwargs  # type: ignore
 
 
-def _find_non_wrap_modules(
+def _find_non_shard_modules(
     module_list: set[type[nn.Module]], target_substrings: list[str] | None = None
 ) -> set[type[nn.Module]]:
     """
@@ -81,12 +81,10 @@ def _find_non_wrap_modules(
     These modules are typically embeddings or output heads that share weights.
     Excluding them from leaf-wrapping ensures they end up in the root FSDP container together.
     """
+    target_substrings = target_substrings or []
     default_substrings = ["embedding", "lmhead"]
-    target_substrings = (
-        target_substrings + default_substrings
-        if target_substrings is not None
-        else default_substrings
-    )
+
+    target_substrings += default_substrings
     target_substrings = [x.lower() for x in target_substrings]
 
     modules_to_exclude = set()
@@ -109,7 +107,7 @@ def get_transformer_shard_modules(
 
     This function inspects the provided `model` for a `_no_split_modules` attribute,
     which typically contains a list of class names (strings) that should be kept intact
-    on a single device (e.g., Transformer blocks). It then resolves these names to
+    on a single device/fsdp container (e.g., Transformer blocks). It then resolves these names to
     actual module classes present in the model instance.
 
     It also filters out specific sub-modules that shouldn't be sharder separately.
@@ -135,7 +133,7 @@ def get_transformer_shard_modules(
         if module.__class__.__name__ in shard_modules_names:
             shard_modules.add(type(module))
 
-    non_shard_modules = _find_non_wrap_modules(
+    non_shard_modules = _find_non_shard_modules(
         shard_modules,
         exclude_sharding_substrings,
     )
@@ -186,7 +184,7 @@ def select_wrap_policy(
     )
 
     modules = {type(module) for module in model.modules()}
-    modules_to_exclude = _find_non_wrap_modules(modules, exclude_sharding_substrings)
+    modules_to_exclude = _find_non_shard_modules(modules, exclude_sharding_substrings)
     logger.debug(
         f"Excluding {len(modules_to_exclude)} modules from size-based wrapping: "
         f"{[module.__name__ for module in modules_to_exclude]}"

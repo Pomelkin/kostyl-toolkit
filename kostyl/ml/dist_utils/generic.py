@@ -1,6 +1,9 @@
 import math
 import os
+from collections.abc import Callable
+from functools import wraps
 from typing import Literal
+from typing import ParamSpec
 
 import torch.distributed as dist
 
@@ -92,3 +95,24 @@ def get_global_rank(group: dist.ProcessGroup | None = None) -> int | None:
             return int(rank)
     # None to differentiate whether an environment variable was set at all
     return None
+
+
+P = ParamSpec("P")
+
+
+def local_rank_zero_only(func: Callable[P, None]) -> Callable[P, None]:
+    """Decorator to ensure a function is executed only on the process with local rank 0 in a distributed environment."""
+
+    @wraps(func)
+    def _wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
+        if (get_local_rank() or 0) != 0:
+            return None
+
+        result = func(*args, **kwargs)
+        if result is not None:
+            raise RuntimeError(
+                f"Function {func.__name__} must return only None, but got {type(result)}"
+            )
+        return None
+
+    return _wrapper

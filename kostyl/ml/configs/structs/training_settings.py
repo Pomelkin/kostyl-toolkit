@@ -96,11 +96,13 @@ class LightningTrainerParameters(BaseModel):
                     raise ValueError(
                         "CUDA accelerator specified but no CUDA devices found."
                     )
+
                 devices = (
                     self.devices
                     if isinstance(self.devices, list)
                     else list(range(self.devices))
                 )
+
                 available_devices = torch.cuda.device_count()
                 if not all(0 <= d < available_devices for d in devices):
                     missing = [d for d in devices if not (0 <= d < available_devices)]

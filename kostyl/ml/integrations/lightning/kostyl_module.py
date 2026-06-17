@@ -125,7 +125,7 @@ class KostylLightningModule(L.LightningModule):
         if stage is not None:
             if not isinstance(dictionary, MetricCollection):
                 dictionary = format_metric_names(
-                    metrics=dictionary,
+                    metrics=dictionary,  # ty:ignore[invalid-argument-type]
                     prefix=stage,
                     add_dist_rank=False,
                 )

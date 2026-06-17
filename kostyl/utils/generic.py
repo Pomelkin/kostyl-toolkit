@@ -2,6 +2,15 @@ from pathlib import Path
 from typing import Any
 
 
+try:
+    from kostyl.ml.dist_utils import local_rank_zero_only
+except ImportError:
+
+    def local_rank_zero_only(func: Any) -> Any:
+        """Dummy decorator for non-distributed environments."""
+        return func
+
+
 def convert_to_flat_dict(
     nested_dict: dict[str, Any], parent_key: str = "", sep: str = "."
 ) -> dict[str, Any]:
@@ -61,6 +70,34 @@ def load_file(path: Path | str) -> dict:
         case _:
             raise ValueError(f"Unsupported file format: {path.suffix}")
     return config
+
+
+@local_rank_zero_only
+def dump_into_file(data: dict[Any, Any] | list[Any], path: Path | str) -> None:
+    """
+    Dump data into a file at the specified path.
+
+    The file format is determined by the file extension (supports .yaml/.yml and .json).
+    """
+    if isinstance(path, str):
+        path = Path(path)
+
+    if not path.parent.exists():
+        raise ValueError(f"Directory {path.parent} does not exist.")
+
+    match path.suffix:
+        case ".yaml" | ".yml":
+            import yaml
+
+            with path.open("w") as f:
+                yaml.safe_dump(data, f)
+        case ".json":
+            import orjson
+
+            path.write_bytes(orjson.dumps(data, option=orjson.OPT_INDENT_2))
+        case _:
+            raise ValueError(f"Unsupported file format: {path.suffix}")
+    return
 
 
 def is_overridden(cls: type, method_name: str) -> bool:
