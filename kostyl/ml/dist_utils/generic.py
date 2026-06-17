@@ -49,19 +49,16 @@ def scale_lrs_by_world_size(
         old_value = value
         new_value = value * scale
         if verbosity_level is not None:
+            msg = f"NEW lr {name.upper()}: {new_value}; OLD: {old_value}"
             if verbosity_level == "rank-zero-only":
                 module_logger.log_rank_zero(
-                    level="info",
-                    msg=f"NEW lr {name.upper()}: {new_value}; OLD: {old_value}",
-                    group=group,
+                    level="INFO",
+                    msg=msg,
+                    process_group=group,
                 )
             elif verbosity_level == "world":
-                module_logger.log_dist(
-                    level="info",
-                    msg=f"NEW lr {name.upper()}: {new_value}; OLD: {old_value}",
-                    rank=dist.get_rank(group=group),
-                    group=group,
-                )
+                # The rank tag is now prepended automatically by the logger.
+                module_logger.info(msg)
         lrs[name] = new_value
     return lrs
 
