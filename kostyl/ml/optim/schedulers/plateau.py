@@ -27,24 +27,18 @@ class _PlateauWithAnnealingCore(BaseScheduler):
             raise ValueError(
                 f"Annealing type must be 'cosine' or 'linear', got {annealing_type}."
             )
-        if warmup_ratio is not None:
-            if not (0 < warmup_ratio < 1):
-                raise ValueError(f"Warmup ratio must be in (0, 1), got {warmup_ratio}.")
+        if warmup_ratio is not None and not (0 < warmup_ratio < 1):
+            raise ValueError(f"Warmup ratio must be in (0, 1), got {warmup_ratio}.")
         if (warmup_value is None) != (warmup_ratio is None):
             raise ValueError(
                 "Both warmup_ratio and warmup_value must be provided or neither."
             )
-        if freeze_ratio is not None:
-            if not (0 < freeze_ratio < 1):
-                raise ValueError(f"Freeze ratio must be in (0, 1), got {freeze_ratio}.")
+        if freeze_ratio is not None and not (0 < freeze_ratio < 1):
+            raise ValueError(f"Freeze ratio must be in (0, 1), got {freeze_ratio}.")
         if not (0 < plateau_ratio < 1):
             raise ValueError(f"Plateau ratio must be in (0, 1), got {plateau_ratio}.")
 
-        pre_annealing_ratio = (
-            plateau_ratio
-            + (warmup_ratio if warmup_ratio is not None else 0)
-            + (freeze_ratio if freeze_ratio is not None else 0)
-        )
+        pre_annealing_ratio = plateau_ratio + (warmup_ratio or 0) + (freeze_ratio or 0)
         if pre_annealing_ratio > 1:
             raise ValueError(
                 "The sum of plateau_ratio, warmup_ratio, and freeze_ratio must <= 1, got "
@@ -250,14 +244,15 @@ class PlateauWithAnnealingScheduler(_PlateauWithAnnealingCore):
                 elif current_param_val == 0:
                     continue
 
+            pg_value = value
             if self.multiplier_field is not None:
                 multiplier = pg.get(self.multiplier_field, 1.0)
-                value = value * multiplier
+                pg_value = pg_value * multiplier
 
             if isinstance(current_param_val, torch.Tensor):
-                current_param_val.fill_(value)
+                current_param_val.fill_(pg_value)
             else:
-                pg[self.param_group_field] = value
+                pg[self.param_group_field] = pg_value
         return
 
 

@@ -100,6 +100,11 @@ def dump_into_file(data: dict[Any, Any] | list[Any], path: Path | str) -> None:
     return
 
 
+def is_empty_dir(path: Path) -> bool:
+    """Check if a directory is empty or not."""
+    return path.is_dir() and not any(path.iterdir())
+
+
 def is_overridden(cls: type, method_name: str) -> bool:
     """Check if a method is overridden in a subclass."""
     return method_name in cls.__dict__

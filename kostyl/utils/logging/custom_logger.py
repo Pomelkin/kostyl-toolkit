@@ -22,13 +22,29 @@ if TYPE_CHECKING:
 else:
     Logger = object
 
-try:
-    from kostyl.ml.dist_utils import get_global_rank
-except Exception:
+_global_rank_fn = None
 
-    def get_global_rank(group=None) -> int | None:
-        """Gets the global rank of the current process in a distributed environment."""
-        return None
+
+def get_global_rank(process_group: ProcessGroup | None = None) -> int | None:
+    """
+    Resolve the current global rank via ``kostyl.ml.dist_utils.get_global_rank``.
+
+    The implementation is imported lazily (on first call, not at module load) to
+    avoid a circular import: ``kostyl.ml.dist_utils`` imports this logging package,
+    so importing it at module load would fail and silently no-op. Falls back to
+    ``None`` when torch / the ``ml`` extra is not installed.
+    """
+    global _global_rank_fn
+    if _global_rank_fn is None:
+        try:
+            from kostyl.ml.dist_utils import get_global_rank as _impl
+        except Exception:
+
+            def _impl(group: ProcessGroup | None = None) -> int | None:
+                return None
+
+        _global_rank_fn = _impl
+    return _global_rank_fn(process_group)  # ty:ignore[invalid-argument-type]
 
 
 class KostylLogger(Logger):  # noqa: D101
@@ -55,6 +71,7 @@ class KostylLogger(Logger):  # noqa: D101
         level: str,
         msg: str,
         process_group: ProcessGroup | None = None,
+        once: bool = False,
         *args,
         **kwargs: Any,
     ) -> None:
@@ -92,13 +109,17 @@ def _log_rank_zero(
     level: str,
     msg: str,
     process_group: ProcessGroup | None = None,
+    once: bool = False,
     *args,
     **kwargs: Any,
 ) -> None:
-    # ``None`` (distributed not initialized) is treated as the single-process
-    # main rank so messages still surface when running without torchrun.
-    if (get_global_rank(process_group) or 0) == 0:  # ty:ignore[invalid-argument-type]
-        self.log(level, msg, *args, **kwargs)
+    # ``None`` (no rank available) is treated as the single-process main rank so
+    # messages still surface when running without torchrun / distributed.
+    if (get_global_rank(process_group) or 0) == 0:
+        if once:
+            self.log_once(level, msg, *args, **kwargs)
+        else:
+            self.log(level, msg, *args, **kwargs)
     return
 
 

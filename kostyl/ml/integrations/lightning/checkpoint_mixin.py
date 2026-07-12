@@ -122,8 +122,7 @@ class LightningCheckpointModelMixin:
             # Load config
             config_cls = cast(type[PreTrainedConfig], cls.config_class)
             config_dict = checkpoint_dict[config_key]
-            config_dict.update(kwargs)
-            config = config_cls.from_dict(config_dict)
+            config = config_cls.from_dict(config_dict, **kwargs)
 
         raw_state_dict: dict[str, torch.Tensor] = checkpoint_dict["state_dict"]
 

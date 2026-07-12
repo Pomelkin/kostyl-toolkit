@@ -206,14 +206,15 @@ class LinearScheduler(_LinearScheduleBase):
                 elif current_param_val == 0:
                     continue
 
+            pg_value = value
             if self.multiplier_field is not None:
                 multiplier = pg.get(self.multiplier_field, 1.0)
-                value = value * multiplier
+                pg_value = pg_value * multiplier
 
             if isinstance(current_param_val, torch.Tensor):
-                current_param_val.fill_(value)
+                current_param_val.fill_(pg_value)
             else:
-                pg[self.param_group_field] = value
+                pg[self.param_group_field] = pg_value
         return
 
 
