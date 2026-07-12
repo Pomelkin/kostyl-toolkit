@@ -1,6 +1,6 @@
 [project]
 name = "kostyl-toolkit"
-version = "0.1.65"
+version = "0.1.83"
 description = "Kickass Orchestration System for Training, Yielding & Logging "
 readme = "README.md"
 requires-python = ">=3.10"
@@ -53,7 +53,7 @@ module-name = "kostyl"
 module-root = ""
 
 [tool.ty.environment]
-python = "./.venv"
+python = ".venv"
 python-version = "3.13"
 
 
@@ -68,39 +68,44 @@ exclude = [
 ]
 
 select = [
-    "ANN",  # Enforce type annotations
-    "C90",  # Enforce maximum cyclomatic complexity
-    "D",    # Enforce docstrings
-    "NPY",  # Enforce numpy style
-    "E",    # Pycodestyle formatting errors
-    "F",    # Pyflakes logic errors
-    "B",    # Flake8-bugbear suspicious code patterns
-    "UP",   # Pyupgrade modern Python syntax
-    "N",    # Pep8-naming correct class/function names
-    "S",    # Flake8-bandit security issues
-    "C4",   # Flake8-comprehensions better comprehensions
-    "T20",  # Flake8-print forbid debug print statements
-    "TID",  # Flake8-tidy-imports forbid relative imports
-    "A",    # Flake8-builtins avoid shadowing built-ins
-    "PTH",  # Flake8-use-pathlib prefer pathlib over os.path
-    "RUF",  # Ruff-specific rules
-    "Q",   # quotes checks
+  "ANN",  # Enforce type annotations
+  "C90",  # Enforce maximum cyclomatic complexity
+  "D",  # Enforce docstrings
+  "NPY",  # Enforce numpy style
+  "E",  # Pycodestyle formatting errors
+  "F",  # Pyflakes logic errors
+  "B",  # Flake8-bugbear suspicious code patterns
+  "UP",  # Pyupgrade modern Python syntax
+  "N",  # Pep8-naming correct class/function names
+  "S",  # Flake8-bandit security issues
+  "C4",  # Flake8-comprehensions better comprehensions
+  "T20",  # Flake8-print forbid debug print statements
+  "TID",  # Flake8-tidy-imports forbid relative imports
+  "A",  # Flake8-builtins avoid shadowing built-ins
+  "PTH",  # Flake8-use-pathlib prefer pathlib over os.path
+  "RUF",  # Ruff-specific rules
+  "Q",  # quotes checks
+  "PERF",  # Performance checks
+  "SIM",  # Simplicity checks
+  "I",  # Import checks
 ]
 ignore = [
-    "ANN001",  # Missing type annotation for function argument
-    "ANN002",  # Missing type annotation for *args
-    "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed
-    "D100",    # Missing docstring in public module
-    "D104",    # Missing docstring in public package
-    "D203",    # 1 blank line required before class docstring
-    "D212",    # Multi-line docstring summary should start at the first line
-    "D401",    # First line of docstring should be in imperative mood
-    "E501",    # Line too long
-    "N806",   # Variable in function should be lowercase
-    "N803",   # Argument name should be lowercase
-    "N812",   # Import alias should be lowercase
-    "N817",
-    "UP047",  # Pyupgrade: python 3.12 generic syntax
+  "ANN002",  # Missing type annotation for *args
+  "ANN003",  # Missing type annotation for **kwargs
+  "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed
+  "I001",  # isort found an import in the wrong position
+  "D100",  # Missing docstring in public module
+  "D104",  # Missing docstring in public package
+  "D203",  # 1 blank line required before class docstring
+  "D212",  # Multi-line docstring summary should start at the first line
+  "D401",  # First line of docstring should be in imperative mood
+  "E501",  # Line too long
+  "N806",  # Variable in function should be lowercase
+  "N803",  # Argument name should be lowercase
+  "N812",  # Import alias should be lowercase
+  "N817",  # CamelCase import aliased as acronym
+  "D105",  # Missing docstring in magic method
+  "S311",  # Standard pseudo-random generators are not suitable for security/cryptographic purposes
 ]
 
 
