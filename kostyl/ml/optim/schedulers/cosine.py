@@ -18,16 +18,14 @@ class _CosineSchedulerCore(BaseScheduler):
         warmup_value: float | None = None,
         freeze_ratio: float | None = None,
     ) -> None:
-        if warmup_ratio is not None:
-            if not (0 < warmup_ratio < 1):
-                raise ValueError(f"Warmup ratio must be in (0, 1), got {warmup_ratio}.")
+        if warmup_ratio is not None and not (0 < warmup_ratio < 1):
+            raise ValueError(f"Warmup ratio must be in (0, 1), got {warmup_ratio}.")
         if (warmup_value is None) != (warmup_ratio is None):
             raise ValueError(
                 "Both warmup_ratio and warmup_value must be provided or neither."
             )
-        if freeze_ratio is not None:
-            if not (0 < freeze_ratio < 1):
-                raise ValueError(f"Freeze ratio must be in (0, 1), got {freeze_ratio}.")
+        if freeze_ratio is not None and not (0 < freeze_ratio < 1):
+            raise ValueError(f"Freeze ratio must be in (0, 1), got {freeze_ratio}.")
         pre_annealing_ratio = (warmup_ratio if warmup_ratio is not None else 0) + (
             freeze_ratio if freeze_ratio is not None else 0
         )

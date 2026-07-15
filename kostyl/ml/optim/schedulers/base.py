@@ -25,7 +25,7 @@ class BaseScheduler(ABC):
         """Get the state for pickling."""
         return self.state_dict()
 
-    def __setstate__(self, state) -> None:
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """Set the state for unpickling."""
         self.load_state_dict(state)
         return

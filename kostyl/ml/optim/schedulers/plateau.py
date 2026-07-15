@@ -84,21 +84,26 @@ class _PlateauWithAnnealingCore(BaseScheduler):
 
         # Create annealing schedule
         annealing_iters = self.num_iters - freeze_iters - warmup_iters - plateau_iters
-        match self.annealing_type:
-            case "cosine":
-                iters = np.arange(annealing_iters)
-                annealing_schedule = self.final_value + 0.5 * (
-                    self.plateau_value - self.final_value
-                ) * (1 + np.cos(np.pi * iters / len(iters)))
-            case "linear":
-                annealing_schedule = np.linspace(
-                    self.plateau_value,
-                    self.final_value,
-                    annealing_iters,
-                    dtype=np.float64,
-                )
-            case _:
-                raise ValueError(f"Unsupported annealing type: {self.annealing_type}")
+        if annealing_iters > 0:
+            match self.annealing_type:
+                case "cosine":
+                    iters = np.arange(annealing_iters, dtype=np.float64)
+                    annealing_schedule = self.final_value + 0.5 * (
+                        self.plateau_value - self.final_value
+                    ) * (1 + np.cos(np.pi * iters / len(iters)))
+                case "linear":
+                    annealing_schedule = np.linspace(
+                        self.plateau_value,
+                        self.final_value,
+                        annealing_iters,
+                        dtype=np.float64,
+                    )
+                case _:
+                    raise ValueError(
+                        f"Unsupported annealing type: {self.annealing_type}"
+                    )
+        else:
+            annealing_schedule = np.array([], dtype=np.float64)
 
         # Concatenate all parts of the schedule
         self.scheduled_values = np.concatenate(
