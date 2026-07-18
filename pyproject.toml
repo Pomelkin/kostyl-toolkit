@@ -1,40 +1,63 @@
 [project]
-name = "teplo-toolkit"
-version = "0.1.0"
-description = "Add your description here"
+name = "kostyl-toolkit"
+version = "0.1.84"
+description = "Kickass Orchestration System for Training, Yielding & Logging "
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = [
     "case-converter>=1.2.0",
-    "clearml>=2.0.2",
-    "flash-attn>=2.8.3",
-    "lightning>=2.5.6",
+    "filelock>=3.25.2",
     "loguru>=0.7.3",
+    "orjson>=3.11.9",
+]
+
+[project.optional-dependencies]
+ml = [
+    "case-converter>=1.2.0",
     "pydantic>=2.12.4",
-    "transformers>=4.57.1",
+    "torch>=2.9.1",
+    "transformers>=5.0.0",
 ]
 
 [dependency-groups]
 dev = [
     "ipywidgets>=8.1.8",
     "notebook>=7.4.7",
+    "pandas>=2.3.3",
+    "peft>=0.18.0",
+    "polars>=1.35.2",
     "pre-commit>=4.3.0",
+    "pyarrow>=22.0.0",
+    "pytest>=9.1.1",
+]
+
+ml = [
+    "case-converter>=1.2.0",
+    "clearml[s3]>=2.0.2",
+    "lightning>=2.5.6",
+    "pydantic>=2.12.4",
+    "torch>=2.9.1",
+    "torchao>=0.15.0",
+    "transformers>=5.0.0",
 ]
 
 
+[tool.uv]
+default-groups = ["dev", "ml"]
 
-[tool.pyright]
-typeCheckingMode = "standard" # "off" | "basic" | "standard" | "strict"
-reportMissingTypeStubs = false
-reportIncompatibleMethodOverride = false
-exclude = [
-    ".venv",
-    "build",
-    "dist",
-    "__pycache__",
-    "migrations",
-    "notebooks",
-]
+
+[build-system]
+requires = ["uv_build>=0.9.9,<0.11"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "kostyl"
+module-root = ""
+
+[tool.ty.environment]
+python = ".venv"
+python-version = "3.13"
+
 
 [tool.ruff.lint]
 exclude = [
@@ -47,43 +70,65 @@ exclude = [
 ]
 
 select = [
-    "ANN",  # Enforce type annotations
-    "C90",  # Enforce maximum cyclomatic complexity
-    "D",    # Enforce docstrings
-    "NPY",  # Enforce numpy style
-    "E",    # Pycodestyle formatting errors
-    "F",    # Pyflakes logic errors
-    "B",    # Flake8-bugbear suspicious code patterns
-    "UP",   # Pyupgrade modern Python syntax
-    "N",    # Pep8-naming correct class/function names
-    "S",    # Flake8-bandit security issues
-    "C4",   # Flake8-comprehensions better comprehensions
-    "T20",  # Flake8-print forbid debug print statements
-    "TID",  # Flake8-tidy-imports forbid relative imports
-    "A",    # Flake8-builtins avoid shadowing built-ins
-    "PTH",  # Flake8-use-pathlib prefer pathlib over os.path
-    "RUF",  # Ruff-specific rules
-    "Q",   # quotes checks
+  "ANN",  # Enforce type annotations
+  "C90",  # Enforce maximum cyclomatic complexity
+  "D",  # Enforce docstrings
+  "NPY",  # Enforce numpy style
+  "E",  # Pycodestyle formatting errors
+  "F",  # Pyflakes logic errors
+  "B",  # Flake8-bugbear suspicious code patterns
+  "UP",  # Pyupgrade modern Python syntax
+  "N",  # Pep8-naming correct class/function names
+  "S",  # Flake8-bandit security issues
+  "C4",  # Flake8-comprehensions better comprehensions
+  "T20",  # Flake8-print forbid debug print statements
+  "TID",  # Flake8-tidy-imports forbid relative imports
+  "A",  # Flake8-builtins avoid shadowing built-ins
+  "PTH",  # Flake8-use-pathlib prefer pathlib over os.path
+  "RUF",  # Ruff-specific rules
+  "Q",  # quotes checks
+  "PERF",  # Performance checks
+  "SIM",  # Simplicity checks
+  "I",  # Import checks
 ]
 ignore = [
-    "ANN001",  # Missing type annotation for function argument
-    "ANN002",  # Missing type annotation for *args
-    "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed
-    "D100",    # Missing docstring in public module
-    "D104",    # Missing docstring in public package
-    "D203",    # 1 blank line required before class docstring
-    "D212",    # Multi-line docstring summary should start at the first line
-    "D401",    # First line of docstring should be in imperative mood
-    "E501",    # Line too long
-    "N806",   # Variable in function should be lowercase
-    "N803",   # Argument name should be lowercase
-    "N812",   # Import alias should be lowercase
-    "N817",
+  "ANN002",  # Missing type annotation for *args
+  "ANN003",  # Missing type annotation for **kwargs
+  "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed
+  "I001",  # isort found an import in the wrong position
+  "D100",  # Missing docstring in public module
+  "D104",  # Missing docstring in public package
+  "D203",  # 1 blank line required before class docstring
+  "D212",  # Multi-line docstring summary should start at the first line
+  "D401",  # First line of docstring should be in imperative mood
+  "E501",  # Line too long
+  "N806",  # Variable in function should be lowercase
+  "N803",  # Argument name should be lowercase
+  "N812",  # Import alias should be lowercase
+  "N817",  # CamelCase import aliased as acronym
+  "D105",  # Missing docstring in magic method
+  "S311",  # Standard pseudo-random generators are not suitable for security/cryptographic purposes
 ]
 
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+  "D",  # Docstrings are not required in tests
+  "S101",  # assert statements are fine in tests
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
 [tool.ruff.lint.isort]
-known-first-party = ["src", "app", "core"]
+known-first-party = ["src", "app", "core", "kostyl"]
 combine-as-imports = true
 force-single-line = true
 lines-after-imports = 2
