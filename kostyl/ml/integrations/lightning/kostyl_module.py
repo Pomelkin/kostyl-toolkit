@@ -82,7 +82,7 @@ class KostylLightningModule(L.LightningModule):
         return
 
     @override
-    def on_before_optimizer_step(self, optimizer) -> None:
+    def on_before_optimizer_step(self, optimizer: torch.optim.Optimizer) -> None:
         grad_clip_val = self.grad_clip_val
         if grad_clip_val is None:
             return

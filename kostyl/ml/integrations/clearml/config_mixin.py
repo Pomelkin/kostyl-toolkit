@@ -35,10 +35,7 @@ class ConfigSyncingClearmlMixin:
             An instance of the class created from the connected configuration file.
 
         """
-        if isinstance(path, Path):
-            str_path = str(path)
-        else:
-            str_path = path
+        str_path = str(path) if isinstance(path, Path) else path
 
         name = alias if alias is not None else pascalcase(cls.__name__)
         connected_path = task.connect_configuration(str_path, name=pascalcase(name))

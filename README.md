@@ -36,16 +36,24 @@ pre-commit install
 `uv sync` uses the dependency groups in `pyproject.toml`, including the heavier ML
 stack used during development.
 
+Run the test suite with:
+
+```bash
+uv run pytest
+```
+
 ## What Is Inside
 
-- `kostyl.utils`: file loading, dict flattening/nesting, override checks, and Loguru setup.
+- `kostyl.utils`: file loading, dict flattening/nesting, override checks, Loguru setup, and a `DirLock` for thread- and process-safe directory access.
 - `kostyl.ml.configs`: Pydantic config structs for trainer settings, data settings, optimizers, LR/weight-decay schedules, and simple config loading mixins.
-- `kostyl.ml.optim`: optimizer and scheduler factories built around those config structs.
+- `kostyl.ml.optim`: optimizer and scheduler factories built around those config structs. Optimizers cover Adam/AdamW, Muon, and low-precision `torchao` Adam variants; schedulers cover linear, cosine, plateau-with-annealing, and composite schedules.
 - `kostyl.ml.integrations.lightning`: a `KostylLightningModule`, checkpoint loading mixins for Transformers models/configs, step estimation, and Lightning-specific helpers.
 - `kostyl.ml.integrations.lightning.callbacks`: checkpoint and early-stopping callback builders.
+- `kostyl.ml.integrations.lightning.loggers`: a `ClearMLLogger` and a TensorBoard logger factory.
 - `kostyl.ml.integrations.clearml`: config syncing, checkpoint upload, tokenizer/model loading, dataset helpers, and tag version helpers for ClearML.
-- `kostyl.ml.dist_utils`: rank helpers and learning-rate scaling by distributed world size.
+- `kostyl.ml.dist_utils`: rank helpers, `local_rank_zero_only`, LR scaling by distributed world size, and FSDP helpers.
 - `kostyl.ml.param_groups`: parameter group creation with common no-decay handling.
+- `kostyl.ml.data_collator`: `BatchCollatorWithKeyAlignment` for mapping dataset keys to the names Hugging Face collators expect.
 
 ## Typed Configs
 
@@ -248,8 +256,18 @@ lr_scheduler = create_scheduler(
 )
 ```
 
+`scheduler_type` accepts `"linear"`, `"cosine"`,
+`"plateau-with-cosine-annealing"`, and `"plateau-with-linear-annealing"`; every
+schedule supports optional warmup and freeze phases. Optimizer configs cover
+`AdamConfig` (Adam/AdamW), `MuonConfig`, and `AdamWithPrecisionConfig` for the
+low-precision `torchao` variants.
+
 Schedulers expose `current_value()` and are designed to be logged from
-`KostylLightningModule.log_scheduled_values()`.
+`KostylLightningModule.log_scheduled_values()`. Each optimizer scheduler has a
+`*ParamScheduler` counterpart that returns the scheduled value from `step()`
+instead of mutating optimizer param groups — useful for scheduling values
+outside an optimizer. `CompositeScheduler` groups several schedulers behind one
+interface so they can be stepped and checkpointed together.
 
 ## ClearML Integration
 
@@ -297,6 +315,20 @@ if is_local_rank_zero():
 scaled_lrs = scale_lrs_by_world_size({"model": 3e-4, "head": 1e-3})
 ```
 
+## Directory Lock
+
+`DirLock` protects a directory with a reentrant in-process lock plus a
+`.dirlock` file lock for cross-process coordination — handy when several
+training processes share a cache or checkpoint directory.
+
+```python
+from kostyl.utils.dirlock import DirLock
+
+
+with DirLock("checkpoints", timeout=60):
+    ...  # exclusive access to the directory
+```
+
 ## Compatibility Notes
 
 - Python `>=3.10` is required.
@@ -316,8 +348,11 @@ kostyl/
     dist_utils/              # rank helpers, LR scaling, FSDP helpers
     integrations/
       clearml/               # ClearML syncing, loading, upload, version helpers
-      lightning/             # Lightning module, callbacks, checkpoint mixins
+      lightning/             # Lightning module, callbacks, loggers, checkpoint mixins
     optim/                   # optimizer and scheduler factories
+    base_uploader.py         # abstract checkpoint uploader interface
+    data_collator.py         # key-aligning wrapper around HF data collators
     param_groups.py          # parameter group builder
-  utils/                     # generic helpers and logging setup
+  utils/                     # generic helpers, logging setup, directory lock
+tests/                       # pytest suite (utils, schedulers, param groups)
 ```

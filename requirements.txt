@@ -418,6 +418,7 @@ colorama==0.4.6 ; sys_platform == 'win32' \
     #   click
     #   ipython
     #   loguru
+    #   pytest
     #   tqdm
 comm==0.2.3 \
     --hash=sha256:2dc8048c10962d55d7ad693be1e7045d891b7ce8d999c97963a5e3e99c055971 \
@@ -479,6 +480,7 @@ exceptiongroup==1.3.1 ; python_full_version < '3.11' \
     # via
     #   anyio
     #   ipython
+    #   pytest
 executing==2.2.1 \
     --hash=sha256:3632cc370565f6648cc328b32435bd120a1e4ebb20c77e3fdde9a13cd1e533c4 \
     --hash=sha256:760643d3452b4d777d295bb167ccc74c64a81df23fb5e08eff250c425a4b2017
@@ -492,6 +494,7 @@ filelock==3.25.2 \
     --hash=sha256:ca8afb0da15f229774c9ad1b455ed96e85a81373065fb10446672f64444ddf70
     # via
     #   huggingface-hub
+    #   kostyl-toolkit
     #   python-discovery
     #   torch
     #   virtualenv
@@ -691,6 +694,10 @@ idna==3.11 \
     #   jsonschema
     #   requests
     #   yarl
+iniconfig==2.3.0 \
+    --hash=sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730 \
+    --hash=sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12
+    # via pytest
 ipykernel==7.2.0 \
     --hash=sha256:18ed160b6dee2cbb16e5f3575858bc19d8f1fe6046a9a680c708494ce31d909e \
     --hash=sha256:3bbd4420d2b3cc105cbdf3756bfc04500b1e52f090a90716851f3916c62e1661
@@ -1410,6 +1417,7 @@ packaging==26.0 \
     #   lightning-utilities
     #   nbconvert
     #   peft
+    #   pytest
     #   pytorch-lightning
     #   torchmetrics
     #   transformers
@@ -1630,6 +1638,10 @@ platformdirs==4.9.4 \
     #   jupyter-core
     #   python-discovery
     #   virtualenv
+pluggy==1.6.0 \
+    --hash=sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3 \
+    --hash=sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746
+    # via pytest
 polars==1.39.0 \
     --hash=sha256:4d1198b41bc47561673d9f54d0f595125202a3f53e3502821802958d3e60efe9 \
     --hash=sha256:e63a25fb7682ae660e36067915a7c71a653b17f82308a8eb67a190a80daf0710
@@ -1979,6 +1991,7 @@ pygments==2.19.2 \
     #   ipython
     #   ipython-pygments-lexers
     #   nbconvert
+    #   pytest
     #   rich
 pyjwt==2.10.1 \
     --hash=sha256:3cc5772eb20009233caf06e9d8a0577824723b44e6648ee0a2aedb6cf9381953 \
@@ -1988,6 +2001,9 @@ pyparsing==3.3.2 \
     --hash=sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d \
     --hash=sha256:c777f4d763f140633dcb6d8a3eda953bf7a214dc4eff598413c070bcdc117cbc
     # via clearml
+pytest==9.1.1 \
+    --hash=sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313 \
+    --hash=sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c
 python-dateutil==2.9.0.post0 \
     --hash=sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3 \
     --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
@@ -2582,7 +2598,9 @@ tomli==2.4.1 ; python_full_version < '3.11' \
     --hash=sha256:fd0409a3653af6c147209d267a0e4243f0ae46b011aa978b1080359fddc9b6cf \
     --hash=sha256:ff18e6a727ee0ab0388507b89d1bc6a22b138d1e2fa56d1ad494586d61d2eae9 \
     --hash=sha256:ff2983983d34813c1aeb0fa89091e76c3a22889ee83ab27c5eeb45100560c049
-    # via jupyterlab
+    # via
+    #   jupyterlab
+    #   pytest
 torch==2.10.0 \
     --hash=sha256:0228d20b06701c05a8f978357f657817a4a63984b0c90745def81c18aedfa591 \
     --hash=sha256:13ec4add8c3faaed8d13e0574f5cd4a323c11655546f91fbe6afa77b57423574 \
