@@ -74,10 +74,7 @@ def create_scheduler(
     if scheduler_type is None:
         raise ValueError("scheduler_type must be specified in the config.")
 
-    if "plateau" in scheduler_type:
-        lookup_scheduler_type = "plateau"
-    else:
-        lookup_scheduler_type = scheduler_type
+    lookup_scheduler_type = "plateau" if "plateau" in scheduler_type else scheduler_type
 
     scheduler_cls = SCHEDULER_MAPPING[lookup_scheduler_type]  # type: ignore
 
@@ -104,22 +101,9 @@ def create_scheduler(
             apply_if_field=apply_if_field,
             ignore_if_field=ignore_if_field,
         )
-    elif issubclass(scheduler_cls, LinearScheduler):
-        scheduler = scheduler_cls(
-            optimizer=optim,
-            param_group_field=param_group_field,
-            num_iters=num_iters,
-            base_value=base_value,
-            final_value=final_value,  # type: ignore
-            warmup_ratio=warmup_ratio,
-            warmup_value=warmup_value,
-            freeze_ratio=freeze_ratio,
-            multiplier_field=multiplier_field,
-            skip_if_zero=skip_if_zero,
-            apply_if_field=apply_if_field,
-            ignore_if_field=ignore_if_field,
-        )
-    elif issubclass(scheduler_cls, CosineScheduler):
+    elif issubclass(scheduler_cls, LinearScheduler) or issubclass(
+        scheduler_cls, CosineScheduler
+    ):
         scheduler = scheduler_cls(
             optimizer=optim,
             param_group_field=param_group_field,

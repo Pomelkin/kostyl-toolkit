@@ -73,7 +73,7 @@ def load_file(path: Path | str) -> dict:
 
 
 @local_rank_zero_only
-def dump_into_file(data: dict[Any, Any] | list[Any], path: Path | str) -> None:
+def dump_to_file(data: dict[Any, Any] | list[Any], path: Path | str) -> None:
     """
     Dump data into a file at the specified path.
 
@@ -98,6 +98,10 @@ def dump_into_file(data: dict[Any, Any] | list[Any], path: Path | str) -> None:
         case _:
             raise ValueError(f"Unsupported file format: {path.suffix}")
     return
+
+
+# alias for backward compatibility, will be removed in future versions
+dump_into_file = dump_to_file
 
 
 def is_empty_dir(path: Path) -> bool:

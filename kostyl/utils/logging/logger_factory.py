@@ -4,6 +4,7 @@ import sys
 import uuid
 from pathlib import Path
 from typing import Literal
+from typing import TextIO
 from typing import cast
 
 from loguru import logger as _base_logger
@@ -36,7 +37,7 @@ def setup_logger(
         "message_only", "only_message", "detailed", "default"
     ] = "message_only",
     level: str | None = None,
-    sink=sys.stdout,
+    sink: TextIO = sys.stdout,
     colorize: bool = True,
     serialize: bool = False,
 ) -> KostylLogger:
@@ -102,12 +103,9 @@ def setup_logger(
         else:
             level = KOSTYL_LOG_LEVEL
 
-    if name is None:
-        channel = _caller_filename()
-    else:
-        channel = name
+    channel = _caller_filename() if name is None else name
 
-    if fmt in _PRESETS:
+    if fmt in _PRESETS:  # noqa: SIM108
         fmt = _PRESETS[fmt]  # ty:ignore[invalid-assignment]
     else:
         fmt = str(fmt)  # ty:ignore[invalid-assignment]

@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from kostyl.utils import convert_to_flat_dict
-from kostyl.utils import dump_into_file
+from kostyl.utils import dump_to_file
 from kostyl.utils import flattened_dict_to_nested
 from kostyl.utils import is_overridden
 from kostyl.utils import load_file
@@ -34,12 +34,12 @@ class TestFileIO:
     def test_dump_and_load_roundtrip(self, tmp_path: Path, suffix: str) -> None:
         data = {"lr": 0.001, "scheduler": {"type": "cosine"}}
         path = tmp_path / f"config{suffix}"
-        dump_into_file(data, path)
+        dump_to_file(data, path)
         assert load_file(path) == data
 
     def test_load_file_accepts_str_path(self, tmp_path: Path) -> None:
         path = tmp_path / "config.json"
-        dump_into_file({"a": 1}, path)
+        dump_to_file({"a": 1}, path)
         assert load_file(str(path)) == {"a": 1}
 
     def test_load_file_missing_file(self, tmp_path: Path) -> None:
@@ -54,7 +54,7 @@ class TestFileIO:
 
     def test_dump_into_missing_dir(self, tmp_path: Path) -> None:
         with pytest.raises(ValueError, match="does not exist"):
-            dump_into_file({"a": 1}, tmp_path / "missing" / "config.yaml")
+            dump_to_file({"a": 1}, tmp_path / "missing" / "config.yaml")
 
 
 class TestIsOverridden:

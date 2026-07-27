@@ -73,12 +73,6 @@ def get_local_rank() -> int | None:
     return None
 
 
-def is_local_rank_zero() -> bool:
-    """Checks if the current process is the main process (rank 0) for the local node in a distributed environment."""
-    local_rank = get_local_rank() or 0
-    return local_rank == 0
-
-
 def get_global_rank(group: dist.ProcessGroup | None = None) -> int | None:
     """Gets the global rank of the current process in a distributed environment."""
     if dist.is_initialized():
@@ -94,6 +88,12 @@ def get_global_rank(group: dist.ProcessGroup | None = None) -> int | None:
     return None
 
 
+def is_local_rank_zero() -> bool:
+    """Checks if the current process is the main process (rank 0) for the local node in a distributed environment."""
+    local_rank = get_local_rank() or 0
+    return local_rank == 0
+
+
 P = ParamSpec("P")
 
 
@@ -103,6 +103,24 @@ def local_rank_zero_only(func: Callable[P, None]) -> Callable[P, None]:
     @wraps(func)
     def _wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
         if (get_local_rank() or 0) != 0:
+            return None
+
+        result = func(*args, **kwargs)
+        if result is not None:
+            raise RuntimeError(
+                f"Function {func.__name__} must return only None, but got {type(result)}"
+            )
+        return None
+
+    return _wrapper
+
+
+def rank_zero_only(func: Callable[P, None]) -> Callable[P, None]:
+    """Decorator to ensure a function is executed only on the process with global rank 0 in a distributed environment."""
+
+    @wraps(func)
+    def _wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
+        if (get_global_rank() or 0) != 0:
             return None
 
         result = func(*args, **kwargs)

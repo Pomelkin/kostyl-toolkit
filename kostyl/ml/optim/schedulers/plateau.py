@@ -126,7 +126,7 @@ class _PlateauWithAnnealingCore(BaseScheduler):
         return
 
     @override
-    def step(self, it: int) -> None | float:
+    def step(self, it: int) -> float | None:
         raise NotImplementedError
 
     def _get_value(self, it: int) -> float:
