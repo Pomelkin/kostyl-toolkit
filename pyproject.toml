@@ -9,6 +9,7 @@ dependencies = [
     "filelock>=3.25.2",
     "loguru>=0.7.3",
     "orjson>=3.11.9",
+    "tqdm>=4.67.3",
 ]
 
 [project.optional-dependencies]

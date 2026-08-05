@@ -1,5 +1,7 @@
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+from typing import TypeVar
 
 
 try:
@@ -112,3 +114,49 @@ def is_empty_dir(path: Path) -> bool:
 def is_overridden(cls: type, method_name: str) -> bool:
     """Check if a method is overridden in a subclass."""
     return method_name in cls.__dict__
+
+
+T = TypeVar("T")
+
+
+def tqdm_rich(iterable: Iterable[T], *args: Any, **kwargs: Any) -> Iterable[T]:
+    """
+    A wrapper around tqdm that uses rich for rendering progress bars.
+
+    Args:
+        iterable: The iterable to wrap with a progress bar.
+        *args: Additional positional arguments for tqdm.
+        **kwargs: Additional keyword arguments for tqdm.
+    """
+    from tqdm.rich import tqdm
+
+    return tqdm(iterable, *args, **kwargs)
+
+
+def tqdm(iterable: Iterable[T], *args: Any, **kwargs: Any) -> Iterable[T]:
+    """
+    A wrapper around tqdm that uses the default tqdm for rendering progress bars.
+
+    Args:
+        iterable: The iterable to wrap with a progress bar.
+        *args: Additional positional arguments for tqdm.
+        **kwargs: Additional keyword arguments for tqdm.
+    """
+    from tqdm import tqdm as std_tqdm
+
+    return std_tqdm(iterable, *args, **kwargs)
+
+
+def tqdm_auto(iterable: Iterable[T], *args: Any, **kwargs: Any) -> Iterable[T]:
+    """
+    A wrapper around tqdm that automatically selects the appropriate tqdm
+    implementation based on the environment (e.g., Jupyter Notebook, terminal).
+
+    Args:
+        iterable: The iterable to wrap with a progress bar.
+        *args: Additional positional arguments for tqdm.
+        **kwargs: Additional keyword arguments for tqdm.
+    """  # noqa: D205
+    from tqdm.auto import tqdm as auto_tqdm
+
+    return auto_tqdm(iterable, *args, **kwargs)
