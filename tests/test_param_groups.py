@@ -1,3 +1,4 @@
+from typing import Any
 import torch
 from torch import nn
 
@@ -16,7 +17,7 @@ class TinyModel(nn.Module):
         self.ln = nn.LayerNorm(8)
 
 
-def collect_params(groups: list[dict]) -> list[torch.nn.Parameter]:
+def collect_params(groups: list[dict[str, Any]]) -> list[torch.nn.Parameter]:
     return [p for g in groups for p in g["params"]]
 
 

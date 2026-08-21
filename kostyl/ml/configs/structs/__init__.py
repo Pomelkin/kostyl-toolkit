@@ -1,5 +1,5 @@
-from .hyperparams import OPTIMIZER_CONFIG
-from .hyperparams import SCHEDULER
+from .hyperparams import OptimizerConfig
+from .hyperparams import Scheduler, AdEMAMixConfig
 from .hyperparams import AdamConfig
 from .hyperparams import AdamWithPrecisionConfig
 from .hyperparams import HyperparamsConfig
@@ -7,7 +7,7 @@ from .hyperparams import Lr
 from .hyperparams import MuonConfig
 from .hyperparams import ScheduledParamConfig
 from .hyperparams import WeightDecay
-from .training_settings import SUPPORTED_STRATEGIES
+from .training_settings import SupportedStrategies
 from .training_settings import CheckpointConfig
 from .training_settings import DataConfig
 from .training_settings import DDPStrategyConfig
@@ -19,9 +19,7 @@ from .training_settings import TrainingSettings
 
 
 __all__ = [
-    "OPTIMIZER_CONFIG",
-    "SCHEDULER",
-    "SUPPORTED_STRATEGIES",
+    "AdEMAMixConfig",
     "AdamConfig",
     "AdamWithPrecisionConfig",
     "CheckpointConfig",
@@ -33,8 +31,11 @@ __all__ = [
     "LightningTrainerParameters",
     "Lr",
     "MuonConfig",
+    "OptimizerConfig",
     "ScheduledParamConfig",
+    "Scheduler",
     "SingleDeviceStrategyConfig",
+    "SupportedStrategies",
     "TrainingSettings",
     "WeightDecay",
 ]

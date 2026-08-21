@@ -70,11 +70,6 @@ class KostylLightningModule(L.LightningModule):
                 cfg["peft_config"][adapter_name] = curr_adapter_cfg.to_dict()  # type: ignore
         return cfg
 
-    @property
-    def grad_clip_val(self) -> float | None:
-        """Returns the gradient clipping value from hyperparameters if set."""
-        raise NotImplementedError
-
     @override
     def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         cfg = self.get_configuration_dict()
@@ -82,18 +77,24 @@ class KostylLightningModule(L.LightningModule):
         return
 
     @override
-    def on_before_optimizer_step(self, optimizer: torch.optim.Optimizer) -> None:
-        grad_clip_val = self.grad_clip_val
-        if grad_clip_val is None:
+    def configure_gradient_clipping(
+        self,
+        optimizer: torch.optim.Optimizer,
+        gradient_clip_val: int | float | None = None,
+        gradient_clip_algorithm: str | None = None,
+    ) -> None:
+        if gradient_clip_val is None:
             return
 
         if not isinstance(self.trainer.strategy, FSDPStrategy):
             norm = torch.nn.utils.clip_grad_norm_(
-                self.parameters(), max_norm=grad_clip_val
+                self.parameters(),
+                max_norm=gradient_clip_val,
             )
         else:
             module: FSDP = self.trainer.strategy.model  # ty:ignore[invalid-assignment]
-            norm = module.clip_grad_norm_(max_norm=grad_clip_val)
+            norm = module.clip_grad_norm_(max_norm=gradient_clip_val)
+
         self.log(
             "grad_norm",
             norm,

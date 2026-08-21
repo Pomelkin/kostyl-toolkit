@@ -52,7 +52,7 @@ def flattened_dict_to_nested(
     return result
 
 
-def load_file(path: Path | str) -> dict:
+def load_file(path: Path | str) -> dict[Any, Any]:
     """Load a file from the specified path."""
     if isinstance(path, str):
         path = Path(path)

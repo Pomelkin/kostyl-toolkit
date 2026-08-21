@@ -1,3 +1,4 @@
+from typing import Any
 from itertools import pairwise
 
 import numpy as np
@@ -17,7 +18,7 @@ from kostyl.ml.optim.schedulers import PlateauWithAnnealingScheduler
 NUM_ITERS = 10
 
 
-def make_optimizer(groups: list[dict] | None = None) -> Optimizer:
+def make_optimizer(groups: list[dict[str, Any]] | None = None) -> Optimizer:
     if groups is None:
         groups = [{"params": [torch.nn.Parameter(torch.zeros(1))], "lr": 1.0}]
     return SGD(groups)

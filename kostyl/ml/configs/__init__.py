@@ -1,6 +1,6 @@
 from .mixins import ConfigLoadingMixin
-from .structs.hyperparams import OPTIMIZER_CONFIG
-from .structs.hyperparams import SCHEDULER
+from .structs.hyperparams import OptimizerConfig, AdEMAMixConfig
+from .structs.hyperparams import Scheduler
 from .structs.hyperparams import AdamConfig
 from .structs.hyperparams import AdamWithPrecisionConfig
 from .structs.hyperparams import HyperparamsConfig
@@ -8,7 +8,7 @@ from .structs.hyperparams import Lr
 from .structs.hyperparams import MuonConfig
 from .structs.hyperparams import ScheduledParamConfig
 from .structs.hyperparams import WeightDecay
-from .structs.training_settings import SUPPORTED_STRATEGIES
+from .structs.training_settings import SupportedStrategies
 from .structs.training_settings import CheckpointConfig
 from .structs.training_settings import DataConfig
 from .structs.training_settings import DDPStrategyConfig
@@ -20,9 +20,7 @@ from .structs.training_settings import TrainingSettings
 
 
 __all__ = [
-    "OPTIMIZER_CONFIG",
-    "SCHEDULER",
-    "SUPPORTED_STRATEGIES",
+    "AdEMAMixConfig",
     "AdamConfig",
     "AdamWithPrecisionConfig",
     "CheckpointConfig",
@@ -35,8 +33,11 @@ __all__ = [
     "LightningTrainerParameters",
     "Lr",
     "MuonConfig",
+    "OptimizerConfig",
     "ScheduledParamConfig",
+    "Scheduler",
     "SingleDeviceStrategyConfig",
+    "SupportedStrategies",
     "TrainingSettings",
     "WeightDecay",
 ]

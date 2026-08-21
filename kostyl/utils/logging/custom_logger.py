@@ -127,10 +127,10 @@ def _log_with_rank(
     self: KostylLogger,
     level: Any,
     from_decorator: bool,
-    options: tuple,
+    options: tuple[Any, ...],
     message: str,
-    args: tuple,
-    kwargs: dict,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
 ) -> None:
     """Prefix every record with ``[RANK: <id>]`` while a process group is initialized."""
     global_rank = get_global_rank()

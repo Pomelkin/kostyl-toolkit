@@ -7,7 +7,7 @@ import torch.distributed as dist
 from torch.distributed import ProcessGroup
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-
+from typing import Any
 from kostyl.utils.logging import setup_logger
 
 
@@ -42,7 +42,7 @@ def estimate_total_steps(  # noqa: C901
 
     datamodule.setup("fit")
 
-    train_dataloader: DataLoader = datamodule.train_dataloader()
+    train_dataloader: DataLoader[Any] = datamodule.train_dataloader()
 
     # Estimate number of batches per epoch
     try:

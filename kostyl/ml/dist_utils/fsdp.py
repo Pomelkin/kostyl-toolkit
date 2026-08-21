@@ -36,7 +36,7 @@ def get_fsdp2_policies(
     strategy_config: FSDP2StrategyConfig,
 ) -> FSDP2PolicyDict:
     """Create a MixedPrecisionPolicy for FSDP2 based on the provided strategy configuration."""
-    kwargs = {
+    kwargs: FSDP2PolicyDict = {
         "mp_policy": MixedPrecisionPolicy(
             param_dtype=_get_optional_attribute(torch, strategy_config.param_dtype),
             reduce_dtype=_get_optional_attribute(torch, strategy_config.reduce_dtype),
@@ -46,7 +46,7 @@ def get_fsdp2_policies(
         if strategy_config.use_cpu_offload
         else OffloadPolicy(),
     }
-    return kwargs  # type: ignore
+    return kwargs
 
 
 class FSDP1PolicyDict(TypedDict):  # noqa: D101
@@ -58,7 +58,7 @@ def get_fsdp1_policies(
     strategy_config: FSDP1StrategyConfig,
 ) -> FSDP1PolicyDict:
     """Create a MixedPrecisionPolicy for FSDP1 based on the provided strategy configuration."""
-    kwargs = {
+    kwargs: FSDP1PolicyDict = {
         "mixed_precision": MixedPrecision(
             param_dtype=_get_optional_attribute(torch, strategy_config.param_dtype),
             reduce_dtype=_get_optional_attribute(torch, strategy_config.reduce_dtype),
@@ -69,7 +69,7 @@ def get_fsdp1_policies(
         if strategy_config.use_cpu_offload
         else None,
     }
-    return kwargs  # type: ignore
+    return kwargs
 
 
 def _find_non_shard_modules(
@@ -153,7 +153,7 @@ def get_transformer_shard_modules(
 
 def select_wrap_policy(
     model: PreTrainedModel, exclude_sharding_substrings: list[str] | None = None
-) -> partial | ModuleWrapPolicy:
+) -> partial[bool] | ModuleWrapPolicy:
     """
     Selects an appropriate wrapping policy for FSDP1 (Fully Sharded Data Parallel) based on the model architecture.
 
@@ -170,7 +170,7 @@ def select_wrap_policy(
             Default set: ["embedding", "lmhead"]. Comparison will be case-insensitive.
 
     Returns:
-        partial | ModuleWrapPolicy: A callable policy or a `ModuleWrapPolicy` instance that dictates
+        partial[bool] | ModuleWrapPolicy: A callable policy or a `ModuleWrapPolicy` instance that dictates
         how the model's layers should be wrapped by FSDP.
 
     """

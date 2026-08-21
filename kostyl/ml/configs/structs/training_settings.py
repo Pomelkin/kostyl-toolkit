@@ -64,7 +64,7 @@ class DDPStrategyConfig(BaseModel):
     find_unused_parameters: bool = False
 
 
-SUPPORTED_STRATEGIES = (
+SupportedStrategies = (
     FSDP1StrategyConfig
     | FSDP2StrategyConfig
     | SingleDeviceStrategyConfig
@@ -77,7 +77,7 @@ class LightningTrainerParameters(BaseModel):
 
     accelerator: str
     max_epochs: int
-    strategy: SUPPORTED_STRATEGIES
+    strategy: SupportedStrategies
     val_check_interval: int | float
     devices: list[int] | int
     precision: PRECISION

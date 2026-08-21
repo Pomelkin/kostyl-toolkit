@@ -58,7 +58,7 @@ class ClearMLCheckpointUploader(ModelCheckpointUploader):
         self.config_dict = config_dict
         self._output_model: OutputModel | None = None
         self._last_uploaded_model_path: str = ""
-        self._upload_callback: Callable | None = None
+        self._upload_callback: Callable[[str], None] | None = None
 
         self._validate_tags(tags)
         self.model_fabric_kwargs = {

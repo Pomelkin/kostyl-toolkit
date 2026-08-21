@@ -27,6 +27,15 @@ class MuonConfig(BaseModel):
     ns_steps: int = 5
 
 
+class AdEMAMixConfig(BaseModel):
+    """AdEMAMix optimizer hyperparameters configuration."""
+
+    type: Literal["AdEMAMix"]
+    betas: tuple[float, float, float] = (0.9, 0.999, 0.9999)
+    alpha: float = 5.0
+    T_alpha_beta3: float | None = None
+
+
 class AdamWithPrecisionConfig(BaseModel):
     """Adam optimizer with low-precision hyperparameters configuration."""
 
@@ -38,8 +47,8 @@ class AdamWithPrecisionConfig(BaseModel):
     bf16_stochastic_round: bool = False
 
 
-OPTIMIZER_CONFIG = AdamConfig | AdamWithPrecisionConfig | MuonConfig
-SCHEDULER = Literal[
+OptimizerConfig = AdamConfig | AdamWithPrecisionConfig | MuonConfig | AdEMAMixConfig
+Scheduler = Literal[
     "linear",
     "cosine",
     "plateau-with-cosine-annealing",
@@ -50,7 +59,7 @@ SCHEDULER = Literal[
 class ScheduledParamConfig(BaseModel):
     """Base configuration for a scheduled hyperparameter."""
 
-    scheduler_type: SCHEDULER | None = None
+    scheduler_type: Scheduler | None = None
 
     freeze_ratio: float | None = Field(default=None, ge=0, le=1)
     warmup_ratio: float | None = Field(default=None, gt=0, lt=1, validate_default=False)
@@ -125,6 +134,6 @@ class HyperparamsConfig(BaseModel):
     """Model training hyperparameters configuration."""
 
     grad_clip_val: float | None = Field(default=None, gt=0, validate_default=False)
-    optimizer: OPTIMIZER_CONFIG
+    optimizer: OptimizerConfig
     lr: Lr
     weight_decay: WeightDecay

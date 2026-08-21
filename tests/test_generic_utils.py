@@ -1,3 +1,4 @@
+from typing import override
 from pathlib import Path
 
 import pytest
@@ -63,6 +64,7 @@ class TestIsOverridden:
             def method(self) -> None: ...
 
         class Child(Base):
+            @override
             def method(self) -> None: ...
 
         class UntouchedChild(Base):

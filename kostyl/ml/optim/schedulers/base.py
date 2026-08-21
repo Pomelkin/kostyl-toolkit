@@ -1,6 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
-from typing import Any
+from typing import Any, override
 
 
 class BaseScheduler(ABC):
@@ -21,6 +21,7 @@ class BaseScheduler(ABC):
         """Verify the scheduler configuration."""
         raise NotImplementedError
 
+    @override
     def __getstate__(self) -> dict[str, Any]:
         """Get the state for pickling."""
         return self.state_dict()

@@ -9,7 +9,7 @@ def create_param_groups(
     lr: float,
     no_lr_keywords: set[str] | None = None,
     no_decay_keywords: set[str] | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """
     Create optimizer parameter groups for a PyTorch model with fine-grained weight decay control.
 
@@ -70,7 +70,7 @@ def create_param_groups(
     return fused_param_groups
 
 
-def _fuse_groups(param_groups: list[dict]) -> list[dict]:
+def _fuse_groups(param_groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
     fused_groups_dict: dict[str, dict[str, Any]] = {}
     for group in param_groups:
         group_key = ""

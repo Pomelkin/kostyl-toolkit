@@ -4,8 +4,8 @@ from typing import Unpack
 from torch.optim import Optimizer
 from torch.optim.optimizer import ParamsT
 
-from kostyl.ml.configs import OPTIMIZER_CONFIG
-from kostyl.ml.configs import SCHEDULER
+from kostyl.ml.configs import OptimizerConfig, AdEMAMixConfig
+from kostyl.ml.configs import Scheduler
 from kostyl.ml.configs import AdamConfig
 from kostyl.ml.configs import AdamWithPrecisionConfig
 from kostyl.ml.configs import MuonConfig
@@ -22,7 +22,7 @@ logger = setup_logger(fmt="only_message")
 
 
 class OVERRIDABLE_CONFIG_KWARGS(TypedDict, total=False):  # noqa: D101, N801
-    scheduler_type: SCHEDULER
+    scheduler_type: Scheduler
     freeze_ratio: float | None
     warmup_ratio: float | None
     warmup_value: float | None
@@ -125,7 +125,7 @@ def create_scheduler(
 
 def create_optimizer(  # noqa: C901
     parameters_groups: ParamsT,
-    optimizer_config: OPTIMIZER_CONFIG,
+    optimizer_config: OptimizerConfig,
     lr: float,
     weight_decay: float,
 ) -> Optimizer:
@@ -264,6 +264,16 @@ def create_optimizer(  # noqa: C901
                 )
             case _:
                 raise ValueError(f"Unsupported optimizer type: {optimizer_config.type}")
+    elif isinstance(optimizer_config, AdEMAMixConfig):
+        from .optimizers import AdEMAMix
+        optimizer = AdEMAMix(
+            params=parameters_groups,
+            lr=lr,
+            betas=optimizer_config.betas,
+            weight_decay=weight_decay,
+            alpha=optimizer_config.alpha,
+            T_alpha_beta3=optimizer_config.T_alpha_beta3,
+        )
     else:
         raise ValueError("Unsupported optimizer configuration type.")
     return optimizer

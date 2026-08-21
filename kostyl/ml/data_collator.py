@@ -88,7 +88,7 @@ class BatchCollatorWithKeyAlignment:
         aligned_batch = []
         for item in batch:
             new_item = {}
-            for k in item.keys():
+            for k in item:
                 new_key = self.keys_mapping.get(k, None)
                 if new_key is None:
                     continue

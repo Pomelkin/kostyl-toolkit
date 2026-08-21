@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TypeVar
+from typing import TypeVar, Any
 
 from pydantic import BaseModel as PydanticBaseModel
 
@@ -35,7 +35,7 @@ class ConfigLoadingMixin:
     @classmethod
     def from_dict(
         cls: type[TConfig],  # pyright: ignore
-        state_dict: dict,
+        state_dict: dict[str, Any],
     ) -> TConfig:
         """
         Creates an instance from a dictionary.
