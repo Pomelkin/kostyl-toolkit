@@ -1,6 +1,8 @@
-from collections.abc import Callable
-from typing import Any, override
 import math
+from collections.abc import Callable
+from typing import Any
+from typing import override
+
 import torch
 from torch.optim import Optimizer
 from torch.optim.optimizer import ParamsT
@@ -73,16 +75,6 @@ class AdEMAMix(Optimizer):
         self,
         closure: Callable[[], torch.Tensor] | None = None,
     ) -> torch.Tensor | None:  # ty: ignore[invalid-method-override]
-        """
-        Perform a single optimization step.
-
-        Args:
-            closure: Optional callable that reevaluates the model and returns the loss.
-
-        Returns:
-            The loss returned by ``closure``, or None if no closure was given.
-
-        """
         loss = None
         if closure is not None:
             with torch.enable_grad():

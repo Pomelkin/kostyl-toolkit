@@ -14,13 +14,13 @@ from transformers import TokenizersBackend
 
 try:
     from kostyl.ml.integrations.lightning import (
-        LightningCheckpointModelMixin,  # pyright: ignore[reportAssignmentType]
+        LightningCheckpointLoader,  # pyright: ignore[reportAssignmentType]
     )
 
     LIGHTING_MIXIN_AVAILABLE = True
 except ImportError:
 
-    class LightningCheckpointModelMixin(PreTrainedModel):  # noqa: D101
+    class LightningCheckpointLoader(PreTrainedModel):  # noqa: D101
         @classmethod
         def from_lightning_checkpoint(cls, *args: Any, **kwargs: Any) -> Any:  # noqa: D102
             raise ImportError(
@@ -71,7 +71,7 @@ def load_tokenizer_from_clearml(
 
 
 TModel = TypeVar(
-    "TModel", bound=PreTrainedModel | LightningCheckpointModelMixin | AutoModel
+    "TModel", bound=PreTrainedModel | LightningCheckpointLoader | AutoModel
 )
 
 
@@ -88,7 +88,7 @@ def load_model_from_clearml(
 
     Args:
         model_id: Identifier of the ClearML input model to retrieve.
-        model: The model class that implements either PreTrainedModel or LightningCheckpointModelMixin.
+        model: The model class that implements either PreTrainedModel or LightningCheckpointLoader.
         task: Optional ClearML task used to resolve the input model reference. If provided, the input model
             will be connected to this task, with remote overrides optionally ignored.
         ignore_remote_overrides: When connecting the input model to the provided task,
@@ -126,10 +126,10 @@ def load_model_from_clearml(
                 "Loading from Lightning checkpoints requires lightning integration. "
                 "Please package install via 'pip install lightning' to enable this functionality."
             )
-        if not issubclass(model, LightningCheckpointModelMixin):
+        if not issubclass(model, LightningCheckpointLoader):
             raise ValueError(
                 f"Model class {model.__name__} is not compatible with Lightning checkpoints "
-                "(must inherit from LightningCheckpointModelMixin)."
+                "(must inherit from LightningCheckpointLoader)."
             )
         model_instance = model.from_lightning_checkpoint(local_path, **kwargs)  # ty:ignore[invalid-argument-type]
 

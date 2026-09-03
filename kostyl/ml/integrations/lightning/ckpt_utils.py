@@ -10,16 +10,16 @@ from transformers.modeling_utils import PreTrainedModel
 from kostyl.utils.logging import setup_logger
 
 
-logger = setup_logger("LightningCheckpointModelMixin", fmt="only_message")
+logger = setup_logger("LightningCheckpointLoader", fmt="only_message")
 
 TModel = TypeVar("TModel", bound=PreTrainedModel)
 
 
-class LightningCheckpointModelMixin:
+class LightningCheckpointLoader:
     """A mixin class for loading pretrained models from PyTorch Lightning checkpoints."""
 
     @classmethod
-    def from_lightning_checkpoint(  # noqa: C901
+    def from_lightning_checkpoint(
         cls: type[TModel],
         checkpoint_path: str | Path,
         config: PreTrainedConfig | None = None,
@@ -29,26 +29,59 @@ class LightningCheckpointModelMixin:
         **kwargs: Any,
     ) -> TModel:
         """
-        Load a model from a Lightning checkpoint file.
+        Load a pretrained model from a PyTorch Lightning checkpoint file (.ckpt).
 
-        This class method loads a pretrained model from a PyTorch Lightning checkpoint file (.ckpt).
-        It uses the provided configuration when `config` is not None. Otherwise, it extracts
-        the serialized model configuration from the checkpoint using `config_key`, instantiates
-        the model, and loads the state dictionary.
+        Convenience wrapper around `LightningCheckpointLoader.load_lightning_checkpoint`
+        that uses the inheriting class as the model class.
+
+        See `LightningCheckpointLoader.load_lightning_checkpoint` for the description
+        of the arguments, behavior, and raised exceptions.
+        """
+        if not issubclass(cls, LightningCheckpointLoader):
+            raise TypeError(
+                f"{cls.__name__} must inherit from LightningCheckpointLoader"
+            )
+        return cls.load_lightning_checkpoint(
+            cls=cls,
+            checkpoint_path=checkpoint_path,
+            config=config,
+            config_key=config_key,
+            weights_prefix=weights_prefix,
+            strict_prefix=strict_prefix,
+            **kwargs,
+        )
+
+    @staticmethod
+    def load_lightning_checkpoint(  # noqa: C901
+        cls: type[TModel],
+        checkpoint_path: str | Path,
+        config: PreTrainedConfig | None = None,
+        config_key: str = "config",
+        weights_prefix: str | None = "model.",
+        strict_prefix: bool = False,
+        **kwargs: Any,
+    ) -> TModel:
+        """
+        Load a pretrained model from a PyTorch Lightning checkpoint file (.ckpt).
+
+        This static method does not require inheritance: pass the model class explicitly
+        via `cls`. It uses the provided configuration when `config` is not None. Otherwise,
+        it extracts the serialized model configuration from the checkpoint using `config_key`,
+        instantiates the model, and loads the state dictionary.
 
         Note:
             The method uses `torch.load` with `weights_only=False` and `mmap=True` for loading.
             Incompatible keys (missing, unexpected, mismatched) are collected and optionally logged.
 
         Args:
-            cls (type[LightningCheckpointModelMixin]): The class of the model to instantiate.
+            cls (type[TModel]): The class of the model to instantiate.
             checkpoint_path (str | Path): Path to the checkpoint file. Must be a .ckpt file.
             config (PreTrainedConfig | None, optional): Configuration instance to use for model
                 instantiation. If provided, the checkpoint config is ignored. Defaults to None.
             config_key (str, optional): Key in the checkpoint dictionary where the serialized
                 config is stored. Used only when `config` is None. Defaults to "config".
             weights_prefix (str | None, optional): Prefix to strip from state dict keys. Defaults to "model.".
-                If not empty and doesn't end with ".", a "." is appended. If empty or None, no prefix stripping will be skipped.
+                If not empty and doesn't end with ".", a "." is appended. If empty or None, prefix stripping will be skipped.
             strict_prefix (bool, optional): If True, drop tensors those keys that do not start with the
                 specified prefix. Defaults to False.
             kwargs: Additional keyword arguments to pass to the model's `from_pretrained` method.
@@ -56,7 +89,7 @@ class LightningCheckpointModelMixin:
                 before constructing the configuration instance.
 
         Returns:
-            TModelInstance: The loaded model instance.
+            TModel: The loaded model instance.
 
         Raises:
             ValueError: If checkpoint_path is a directory, not a .ckpt file, or invalid.
@@ -170,7 +203,7 @@ class LightningCheckpointModelMixin:
 TConfig = TypeVar("TConfig", bound=PreTrainedConfig)
 
 
-class LightningCheckpointConfigMixin:
+class LightningConfigLoader:
     """Mixin for loading Hugging Face configs from PyTorch Lightning checkpoints."""
 
     @classmethod
@@ -183,7 +216,33 @@ class LightningCheckpointConfigMixin:
         """
         Load a configuration instance from a Lightning checkpoint file.
 
-        This class method reads a PyTorch Lightning checkpoint and extracts the
+        Convenience wrapper around `LightningConfigLoader.load_lightning_checkpoint`
+        that uses the inheriting class as the configuration class.
+
+        See `LightningConfigLoader.load_lightning_checkpoint` for the description
+        of the arguments, behavior, and raised exceptions.
+        """
+        if not issubclass(cls, LightningConfigLoader):
+            raise TypeError(f"{cls.__name__} must inherit from LightningConfigLoader")
+        return cls.load_lightning_checkpoint(
+            cls=cls,
+            checkpoint_path=checkpoint_path,
+            config_key=config_key,
+            **kwargs,
+        )
+
+    @staticmethod
+    def load_lightning_checkpoint(
+        cls: type[TConfig],
+        checkpoint_path: str | Path,
+        config_key: str = "config",
+        **kwargs: Any,
+    ) -> TConfig:
+        """
+        Load a configuration instance from a Lightning checkpoint file.
+
+        This static method does not require inheritance: pass the configuration class
+        explicitly via `cls`. It reads a PyTorch Lightning checkpoint and extracts the
         serialized model configuration stored under `config_key`. The extracted
         dictionary is passed to the config class' `from_dict` constructor together
         with any additional keyword arguments.
@@ -195,7 +254,7 @@ class LightningCheckpointConfigMixin:
 
         Args:
             cls (type[TConfig]): The configuration class to instantiate.
-            checkpoint_path (str | Path): Path to the Lightning checkpoint file.
+            checkpoint_path (str | Path): Path to the checkpoint file. Must be a .ckpt file.
             config_key (str, optional): Key in the checkpoint dictionary where the config is stored.
                 Defaults to "config".
             kwargs: Additional keyword arguments to pass to the config class'
@@ -204,7 +263,21 @@ class LightningCheckpointConfigMixin:
         Returns:
             TConfig: The loaded configuration instance.
 
+        Raises:
+            ValueError: If checkpoint_path is a directory, not a .ckpt file, or invalid.
+            FileNotFoundError: If the checkpoint file does not exist.
+
         """
+        if isinstance(checkpoint_path, str):
+            checkpoint_path = Path(checkpoint_path)
+
+        if checkpoint_path.is_dir():
+            raise ValueError(f"{checkpoint_path} is a directory")
+        if not checkpoint_path.exists():
+            raise FileNotFoundError(f"{checkpoint_path} does not exist")
+        if checkpoint_path.suffix != ".ckpt":
+            raise ValueError(f"{checkpoint_path} is not a .ckpt file")
+
         checkpoint_dict = torch.load(
             checkpoint_path,
             map_location="meta",

@@ -7,18 +7,15 @@ except ImportError as e:
     ) from e
 
 
-from .checkpoint_mixin import LightningCheckpointConfigMixin
-from .checkpoint_mixin import LightningCheckpointModelMixin
+from .ckpt_utils import LightningCheckpointLoader
+from .ckpt_utils import LightningConfigLoader
 from .kostyl_module import KostylLightningModule
 from .utils import estimate_total_steps
 
 
 __all__ = [
     "KostylLightningModule",
-    "LightningCheckpointConfigLoaderMixin",
-    "LightningCheckpointConfigMixin",
-    "LightningCheckpointLoaderMixin",
-    "LightningCheckpointModelLoaderMixin",
-    "LightningCheckpointModelMixin",
+    "LightningCheckpointLoader",
+    "LightningConfigLoader",
     "estimate_total_steps",
 ]

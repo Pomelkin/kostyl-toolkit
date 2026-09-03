@@ -1,6 +1,7 @@
 from abc import ABC
 from abc import abstractmethod
-from typing import Any, override
+from typing import Any
+from typing import override
 
 
 class BaseScheduler(ABC):
@@ -32,7 +33,7 @@ class BaseScheduler(ABC):
         return
 
     @abstractmethod
-    def step(self, it: int) -> None | float:
+    def step(self, it: int) -> float | None:
         """
         Update the scheduler state. This is a no-op for most schedulers.
 

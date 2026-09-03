@@ -17,16 +17,6 @@ class AdamConfig(BaseModel):
     betas: tuple[float, float] = (0.9, 0.999)
 
 
-class MuonConfig(BaseModel):
-    """Muon optimizer hyperparameters configuration."""
-
-    type: Literal["Muon"]
-    momentum: float = 0.95
-    nesterov: bool = True
-    ns_coefficients: tuple[float, float, float] = (3.4445, -4.7750, 2.0315)
-    ns_steps: int = 5
-
-
 class AdEMAMixConfig(BaseModel):
     """AdEMAMix optimizer hyperparameters configuration."""
 
@@ -45,6 +35,17 @@ class AdamWithPrecisionConfig(BaseModel):
     betas: tuple[float, float] = (0.9, 0.999)
     block_size: int
     bf16_stochastic_round: bool = False
+
+
+class MuonConfig(BaseModel):
+    """Muon optimizer hyperparameters configuration."""
+
+    type: Literal["Muon"]
+    second_optimizer: AdEMAMixConfig | AdamConfig | AdamWithPrecisionConfig
+    momentum: float = 0.95
+    nesterov: bool = True
+    ns_coefficients: tuple[float, float, float] = (3.4445, -4.7750, 2.0315)
+    ns_steps: int = 5
 
 
 OptimizerConfig = AdamConfig | AdamWithPrecisionConfig | MuonConfig | AdEMAMixConfig
