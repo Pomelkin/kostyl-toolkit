@@ -1,9 +1,12 @@
+import os
 from typing import Literal
+from typing import cast
 
 import torch
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
+from torch.distributed.algorithms.ddp_comm_hooks import default_hooks
 
 from kostyl.utils.logging import setup_logger
 
@@ -33,13 +36,13 @@ DTYPE = Literal["float32", "float16", "bfloat16", "float64"]
 class SingleDeviceStrategyConfig(BaseModel):
     """Single device strategy configuration."""
 
-    type: Literal["single_device"]
+    kind: Literal["single-device"]
 
 
 class FSDP1StrategyConfig(BaseModel):
     """Fully Sharded Data Parallel (FSDP) strategy configuration."""
 
-    type: Literal["fsdp1"]
+    kind: Literal["fsdp1"]
     param_dtype: DTYPE | None = None
     reduce_dtype: DTYPE | None = None
     buffer_dtype: DTYPE | None = None
@@ -50,18 +53,30 @@ class FSDP1StrategyConfig(BaseModel):
 class FSDP2StrategyConfig(BaseModel):
     """Fully Sharded Data Parallel (FSDP) strategy configuration."""
 
-    type: Literal["fsdp2"]
+    kind: Literal["fsdp2"]
     param_dtype: DTYPE | None = None
     reduce_dtype: DTYPE | None = None
     output_dtype: DTYPE | None = None
     use_cpu_offload: bool = False
 
 
+_DDP_HOOKS = tuple(name for name in default_hooks.__all__ if name.endswith("_hook"))
+
+
 class DDPStrategyConfig(BaseModel):
     """Distributed Data Parallel (DDP) strategy configuration."""
 
-    type: Literal["ddp"]
+    kind: Literal["ddp"]
     find_unused_parameters: bool = False
+    hook: str | None = None
+
+    @model_validator(mode="after")
+    def _validate_hook(self) -> "DDPStrategyConfig":
+        if self.hook is not None and self.hook not in _DDP_HOOKS:
+            raise ValueError(
+                f"Invalid DDP hook '{self.hook}'. Available hooks: {', '.join(_DDP_HOOKS)}"
+            )
+        return self
 
 
 SupportedStrategies = (
@@ -72,14 +87,33 @@ SupportedStrategies = (
 )
 
 
+class MultiNodeDevices(BaseModel):
+    """Configuration for multi-node training devices."""
+
+    node_rank: int
+    node_devices: list[int] | int
+
+
+def _as_device_list(devices: list[int] | int) -> list[int]:
+    return list(range(devices)) if isinstance(devices, int) else devices
+
+
+def _torchrun_node_rank() -> int:
+    # torchrun exposes the node index as GROUP_RANK (it never sets NODE_RANK), and
+    # Lightning's TorchElasticEnvironment reads `node_rank` from the same variable,
+    # so the config and Lightning always agree on which node entry is local.
+    return int(os.getenv("GROUP_RANK", "-1"))
+
+
 class LightningTrainerParameters(BaseModel):
     """Lightning Trainer parameters configuration."""
 
     accelerator: str
     max_epochs: int
     strategy: SupportedStrategies
-    val_check_interval: int | float
-    devices: list[int] | int
+    val_check_interval: int | float = 1.0
+    check_val_every_n_epoch: int | None = 1
+    devices: list[int] | list[MultiNodeDevices] | int
     precision: PRECISION
     log_every_n_steps: int = Field(default=50, ge=1)
     accumulate_grad_batches: int = Field(default=1, ge=1)
@@ -88,8 +122,61 @@ class LightningTrainerParameters(BaseModel):
     limit_test_batches: int | float | None = None
     limit_predict_batches: int | float | None = None
 
+    @property
+    def is_multi_node(self) -> bool:
+        """Returns True if the devices configuration indicates multi-node training."""
+        return (
+            isinstance(self.devices, list)
+            and len(self.devices) > 0
+            and all(isinstance(d, MultiNodeDevices) for d in self.devices)
+        )
+
+    @property
+    def local_devices(self) -> list[int]:
+        """Returns the list of devices for the current node."""
+        if not self.is_multi_node:
+            return _as_device_list(cast(list[int] | int, self.devices))
+
+        node_rank = _torchrun_node_rank()
+        for node in cast(list[MultiNodeDevices], self.devices):
+            if node.node_rank == node_rank:
+                return _as_device_list(node.node_devices)
+        raise ValueError(
+            f"No devices found for node rank {node_rank} (GROUP_RANK={os.getenv('GROUP_RANK')})."
+        )
+
+    @property
+    def num_nodes(self) -> int:
+        """Returns the number of nodes in the training configuration."""
+        if self.is_multi_node:
+            return len(cast(list[MultiNodeDevices], self.devices))
+        return 1
+
     @model_validator(mode="after")
-    def _validate_devices_and_accelerator(self) -> "LightningTrainerParameters":
+    def _validate_devices_and_accelerator(self) -> "LightningTrainerParameters":  # noqa: C901
+        if self.is_multi_node:
+            if not (
+                torch.distributed.is_available()
+                and torch.distributed.is_torchelastic_launched()
+            ):
+                raise ValueError(
+                    "Multi-node training configuration is not compatible with TorchElastic. Please use a different launch method or disable multi-node training."
+                )
+            if int(os.getenv("NODE_RANK", "-1")) < 0:
+                raise ValueError(
+                    "Multi-node training configuration requires NODE_RANK environment variable to be set."
+                )
+            if not isinstance(self.devices, list) or not all(
+                isinstance(d, MultiNodeDevices) for d in self.devices
+            ):
+                raise ValueError(
+                    "Multi-node training configuration requires devices to be a list of MultiNodeDevices."
+                )
+            if int(os.getenv("GROUP_WORLD_SIZE", "-1")) != len(self.devices):
+                raise ValueError(
+                    f"Mismatch between GROUP_WORLD_SIZE ({os.getenv('GROUP_WORLD_SIZE')}) and the number of nodes specified in devices ({len(self.devices)})."
+                )
+
         match self.accelerator:
             case "cuda":
                 if not torch.cuda.is_available():
@@ -97,11 +184,13 @@ class LightningTrainerParameters(BaseModel):
                         "CUDA accelerator specified but no CUDA devices found."
                     )
 
-                devices = (
-                    self.devices
-                    if isinstance(self.devices, list)
-                    else list(range(self.devices))
-                )
+                devices = self.local_devices
+                if self.is_multi_node and int(
+                    os.getenv("LOCAL_WORLD_SIZE", "-1")
+                ) != len(devices):
+                    raise ValueError(
+                        f"Mismatch between LOCAL_WORLD_SIZE ({os.getenv('LOCAL_WORLD_SIZE')}) and the number of devices specified for the current node ({len(devices)})."
+                    )
 
                 available_devices = torch.cuda.device_count()
                 if not all(0 <= d < available_devices for d in devices):
