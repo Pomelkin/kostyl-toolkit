@@ -1,23 +1,23 @@
 from typing import Literal
 
-from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
 
 from kostyl.utils.logging import setup_logger
+from kostyl.utils.pydantic_models import StrictPydanticBaseModel
 
 
 logger = setup_logger(fmt="only_message")
 
 
-class AdamConfig(BaseModel):
+class AdamConfig(StrictPydanticBaseModel):
     """Adam optimizer hyperparameters configuration."""
 
     type: Literal["AdamW", "Adam"] = "AdamW"
     betas: tuple[float, float] = (0.9, 0.999)
 
 
-class AdEMAMixConfig(BaseModel):
+class AdEMAMixConfig(StrictPydanticBaseModel):
     """AdEMAMix optimizer hyperparameters configuration."""
 
     type: Literal["AdEMAMix"]
@@ -26,7 +26,7 @@ class AdEMAMixConfig(BaseModel):
     T_alpha_beta3: float | None = None
 
 
-class AdamWithPrecisionConfig(BaseModel):
+class AdamWithPrecisionConfig(StrictPydanticBaseModel):
     """Adam optimizer with low-precision hyperparameters configuration."""
 
     type: Literal[
@@ -37,7 +37,7 @@ class AdamWithPrecisionConfig(BaseModel):
     bf16_stochastic_round: bool = False
 
 
-class MuonConfig(BaseModel):
+class MuonConfig(StrictPydanticBaseModel):
     """Muon optimizer hyperparameters configuration."""
 
     type: Literal["Muon"]
@@ -57,7 +57,7 @@ Scheduler = Literal[
 ]
 
 
-class ScheduledParamConfig(BaseModel):
+class ScheduledParamConfig(StrictPydanticBaseModel):
     """Base configuration for a scheduled hyperparameter."""
 
     scheduler_type: Scheduler | None = None
@@ -131,7 +131,7 @@ class WeightDecay(ScheduledParamConfig):
     pass
 
 
-class HyperparamsConfig(BaseModel):
+class HyperparamsConfig(StrictPydanticBaseModel):
     """Model training hyperparameters configuration."""
 
     grad_clip_val: float | None = Field(default=None, gt=0, validate_default=False)

@@ -3,12 +3,12 @@ from typing import Literal
 from typing import cast
 
 import torch
-from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
 from torch.distributed.algorithms.ddp_comm_hooks import default_hooks
 
 from kostyl.utils.logging import setup_logger
+from kostyl.utils.pydantic_models import StrictPydanticBaseModel
 
 
 logger = setup_logger(fmt="only_message")
@@ -33,13 +33,13 @@ PRECISION = Literal[
 DTYPE = Literal["float32", "float16", "bfloat16", "float64"]
 
 
-class SingleDeviceStrategyConfig(BaseModel):
+class SingleDeviceStrategyConfig(StrictPydanticBaseModel):
     """Single device strategy configuration."""
 
     kind: Literal["single-device"]
 
 
-class FSDP1StrategyConfig(BaseModel):
+class FSDP1StrategyConfig(StrictPydanticBaseModel):
     """Fully Sharded Data Parallel (FSDP) strategy configuration."""
 
     kind: Literal["fsdp1"]
@@ -50,7 +50,7 @@ class FSDP1StrategyConfig(BaseModel):
     use_cpu_offload: bool = False
 
 
-class FSDP2StrategyConfig(BaseModel):
+class FSDP2StrategyConfig(StrictPydanticBaseModel):
     """Fully Sharded Data Parallel (FSDP) strategy configuration."""
 
     kind: Literal["fsdp2"]
@@ -63,7 +63,7 @@ class FSDP2StrategyConfig(BaseModel):
 _DDP_HOOKS = tuple(name for name in default_hooks.__all__ if name.endswith("_hook"))
 
 
-class DDPStrategyConfig(BaseModel):
+class DDPStrategyConfig(StrictPydanticBaseModel):
     """Distributed Data Parallel (DDP) strategy configuration."""
 
     kind: Literal["ddp"]
@@ -87,7 +87,7 @@ SupportedStrategies = (
 )
 
 
-class MultiNodeDevices(BaseModel):
+class MultiNodeDevices(StrictPydanticBaseModel):
     """Configuration for multi-node training devices."""
 
     node_rank: int
@@ -105,7 +105,24 @@ def _torchrun_node_rank() -> int:
     return int(os.getenv("GROUP_RANK", "-1"))
 
 
-class LightningTrainerParameters(BaseModel):
+def _check_node_layout(nodes: list[MultiNodeDevices]) -> None:
+    ranks = sorted(node.node_rank for node in nodes)
+    if ranks != list(range(len(nodes))):
+        raise ValueError(
+            f"Multi-node `node_rank` values must be unique and cover 0..{len(nodes) - 1}, got {ranks}."
+        )
+    # Lightning's TorchElasticEnvironment requires devices-per-node * num_nodes == WORLD_SIZE,
+    # so every node has to run the same number of processes.
+    device_counts = {
+        node.node_rank: len(_as_device_list(node.node_devices)) for node in nodes
+    }
+    if len(set(device_counts.values())) > 1:
+        raise ValueError(
+            f"All nodes must use the same number of devices, got {device_counts} (node_rank -> device count)."
+        )
+
+
+class LightningTrainerParameters(StrictPydanticBaseModel):
     """Lightning Trainer parameters configuration."""
 
     accelerator: str
@@ -155,26 +172,22 @@ class LightningTrainerParameters(BaseModel):
     @model_validator(mode="after")
     def _validate_devices_and_accelerator(self) -> "LightningTrainerParameters":  # noqa: C901
         if self.is_multi_node:
+            _check_node_layout(cast(list[MultiNodeDevices], self.devices))
             if not (
                 torch.distributed.is_available()
                 and torch.distributed.is_torchelastic_launched()
             ):
                 raise ValueError(
-                    "Multi-node training configuration is not compatible with TorchElastic. Please use a different launch method or disable multi-node training."
+                    "Multi-node training configuration must be launched with torchrun (TorchElastic). "
+                    "For a single-node run, set `devices` to a plain list of device ids."
                 )
-            if int(os.getenv("NODE_RANK", "-1")) < 0:
+            if int(os.getenv("GROUP_RANK", "-1")) < 0:
                 raise ValueError(
-                    "Multi-node training configuration requires NODE_RANK environment variable to be set."
+                    "Multi-node training configuration requires GROUP_RANK environment variable to be set."
                 )
-            if not isinstance(self.devices, list) or not all(
-                isinstance(d, MultiNodeDevices) for d in self.devices
-            ):
+            if int(os.getenv("GROUP_WORLD_SIZE", "-1")) != self.num_nodes:
                 raise ValueError(
-                    "Multi-node training configuration requires devices to be a list of MultiNodeDevices."
-                )
-            if int(os.getenv("GROUP_WORLD_SIZE", "-1")) != len(self.devices):
-                raise ValueError(
-                    f"Mismatch between GROUP_WORLD_SIZE ({os.getenv('GROUP_WORLD_SIZE')}) and the number of nodes specified in devices ({len(self.devices)})."
+                    f"Mismatch between GROUP_WORLD_SIZE ({os.getenv('GROUP_WORLD_SIZE')}) and the number of nodes specified in devices ({self.num_nodes})."
                 )
 
         match self.accelerator:
@@ -213,7 +226,7 @@ class LightningTrainerParameters(BaseModel):
         return self
 
 
-class EarlyStoppingConfig(BaseModel):
+class EarlyStoppingConfig(StrictPydanticBaseModel):
     """Early stopping configuration."""
 
     monitor: str
@@ -222,7 +235,7 @@ class EarlyStoppingConfig(BaseModel):
     min_delta: float = Field(default=0.01, ge=0)
 
 
-class CheckpointConfig(BaseModel):
+class CheckpointConfig(StrictPydanticBaseModel):
     """Model checkpointing configuration."""
 
     save_top_k: int = 4
@@ -232,7 +245,7 @@ class CheckpointConfig(BaseModel):
     save_weights_only: bool = True
 
 
-class DataConfig(BaseModel):
+class DataConfig(StrictPydanticBaseModel):
     """Data configuration."""
 
     datasets: dict[str, str]
@@ -241,7 +254,7 @@ class DataConfig(BaseModel):
     data_columns: list[str]
 
 
-class TrainingSettings(BaseModel):
+class TrainingSettings(StrictPydanticBaseModel):
     """Training parameters configuration."""
 
     trainer: LightningTrainerParameters
