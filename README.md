@@ -349,7 +349,12 @@ start or stop processes on those GPUs meanwhile.
 ```bash
 kostyl-hold-gpus 0 1 3          # 100mb per GPU by default
 kostyl-hold-gpus 0,1 -s 1.5gb   # sizes use binary units: 1kb = 1024 bytes
+kostyl-hold-gpus 0 -c 30s       # also run 1s of matmuls every 30s (ms, s, m, h)
+kostyl-hold-gpus 0 -c 1m -d 5s  # 5s of matmuls every minute
 ```
+
+With `-c/--compute-every` the GPUs also show utilization in `nvtop`/`nvidia-smi`
+instead of idling with memory allocated.
 
 GPU ids are `nvidia-smi` indices. Actual usage per GPU is the requested size plus
 the CUDA context (a few hundred MiB).

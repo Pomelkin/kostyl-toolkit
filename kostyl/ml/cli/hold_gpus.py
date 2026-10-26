@@ -5,6 +5,7 @@ import shutil
 import signal
 import subprocess
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from types import FrameType
@@ -12,6 +13,7 @@ from typing import TYPE_CHECKING
 from typing import override
 
 import rich_click as click
+from click.core import ParameterSource
 
 from kostyl.utils.logging import setup_logger
 
@@ -25,6 +27,13 @@ logger = setup_logger(name="hold-gpus", fmt="detailed")
 _SIZE_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(b|[kmgt](?:i?b)?)", re.IGNORECASE)
 _UNIT_BYTES = {"b": 1, "k": 1024, "m": 1024**2, "g": 1024**3, "t": 1024**4}
 _MIB = 1024**2
+_DURATION_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(ms|s|m|h)?", re.IGNORECASE)
+_UNIT_SECONDS = {"ms": 0.001, "s": 1, "m": 60, "h": 3600}
+
+# Fake compute: fp32 matmuls of this size take ~1 ms on current GPUs, so a burst
+# is many of them, synchronized in small chunks to stay time-bounded.
+_MATMUL_DIM = 2048
+_MATMULS_PER_SYNC = 20
 
 
 class ByteSize(click.ParamType):
@@ -50,6 +59,34 @@ class ByteSize(click.ParamType):
         if size <= 0:
             self.fail(f"{value!r} must be a positive size", param, ctx)
         return size
+
+
+class Duration(click.ParamType):
+    """Click parameter type for durations like ``500ms``, ``30s``, ``5m`` or ``1h`` (bare numbers are seconds)."""
+
+    name = "duration"
+
+    @override
+    def convert(
+        self,
+        value: str | float,
+        param: click.Parameter | None,
+        ctx: click.Context | None,
+    ) -> float:
+        if isinstance(value, int | float):
+            return float(value)
+        match = _DURATION_RE.fullmatch(value.strip())
+        if match is None:
+            self.fail(
+                f"{value!r} is not a duration, expected e.g. 500ms, 30s, 5m, 1h",
+                param,
+                ctx,
+            )
+        number, unit = match.groups()
+        seconds = float(number) * _UNIT_SECONDS[(unit or "s").lower()]
+        if seconds <= 0:
+            self.fail(f"{value!r} must be a positive duration", param, ctx)
+        return seconds
 
 
 @dataclass(frozen=True)
@@ -78,6 +115,14 @@ def format_size(n_bytes: float) -> str:
             return f"{n_bytes:.4g} {unit}"
         n_bytes /= 1024
     return f"{n_bytes:.4g} TiB"
+
+
+def format_duration(seconds: float) -> str:
+    """Format a duration with the largest fitting unit, e.g. ``1.5m``."""
+    for unit, scale in (("h", 3600), ("m", 60), ("s", 1)):
+        if seconds >= scale:
+            return f"{seconds / scale:.4g}{unit}"
+    return f"{seconds * 1000:.4g}ms"
 
 
 def parse_gpu_ids(values: tuple[str, ...]) -> list[int]:
@@ -246,19 +291,19 @@ def _restrict_cuda_to(gpus: list[GpuInfo]) -> None:
     return
 
 
-def _allocate(gpus: list[GpuInfo], size: int) -> list["torch.Tensor"]:
+def _allocate(gpus: list[GpuInfo], size: int) -> dict[GpuInfo, "torch.Tensor"]:
     import torch
 
     if torch.cuda.device_count() != len(gpus):
         raise click.ClickException(
             f"CUDA sees {torch.cuda.device_count()} of the {len(gpus)} requested GPUs"
         )
-    buffers: list[torch.Tensor] = []
+    buffers: dict[GpuInfo, torch.Tensor] = {}
     for ordinal, gpu in enumerate(gpus):
         try:
             # zeros (not empty) touches the memory, so it is committed right away.
-            buffers.append(
-                torch.zeros(size, dtype=torch.uint8, device=f"cuda:{ordinal}")
+            buffers[gpu] = torch.zeros(
+                size, dtype=torch.uint8, device=f"cuda:{ordinal}"
             )
         except RuntimeError as exc:
             reason = str(exc).splitlines()[0]
@@ -268,6 +313,64 @@ def _allocate(gpus: list[GpuInfo], size: int) -> list["torch.Tensor"]:
             continue
         logger.success(f"GPU {gpu.index} ({gpu.name}): holding {format_size(size)}")
     return buffers
+
+
+class FakeLoad:
+    """Bursts of matrix multiplications that make GPUs look busy in nvtop or nvidia-smi."""
+
+    def __init__(self, buffers: dict[GpuInfo, "torch.Tensor"], seconds: float) -> None:
+        """
+        Allocate matmul operands next to the held buffers.
+
+        Args:
+            buffers: Held buffers by GPU; operands are placed on the same devices.
+            seconds: How long each burst keeps the GPUs busy.
+
+        """
+        import torch
+
+        self._seconds = seconds
+        self._matrices: list[torch.Tensor] = []
+        self._outputs: list[torch.Tensor] = []
+        for gpu, buffer in buffers.items():
+            try:
+                matrix = torch.randn(_MATMUL_DIM, _MATMUL_DIM, device=buffer.device)
+                output = torch.empty_like(matrix)
+            except RuntimeError as exc:
+                reason = str(exc).splitlines()[0]
+                logger.error(
+                    f"GPU {gpu.index}: no memory left for fake compute: {reason}"
+                )
+                continue
+            self._matrices.append(matrix)
+            self._outputs.append(output)
+        return
+
+    def run(self) -> None:
+        """Keep all GPUs busy with matmuls for about the configured number of seconds."""
+        import torch
+
+        deadline = time.monotonic() + self._seconds
+        while time.monotonic() < deadline:
+            # Queue work on every GPU before waiting, so they all compute at once.
+            for matrix, output in zip(self._matrices, self._outputs, strict=True):
+                for _ in range(_MATMULS_PER_SYNC):
+                    torch.matmul(matrix, matrix, out=output)
+            for matrix in self._matrices:
+                torch.cuda.synchronize(matrix.device)
+        return
+
+
+def _run_periodically(tasks: list[tuple[float, Callable[[], None]]]) -> None:
+    """Call every ``(period, callback)`` task right away and then once per period (start to start), forever."""
+    due = [time.monotonic()] * len(tasks)
+    while True:
+        for i, (period, callback) in enumerate(tasks):
+            started = time.monotonic()
+            if started >= due[i]:
+                callback()
+                due[i] = started + period
+        time.sleep(max(0.0, min(due) - time.monotonic()))
 
 
 def _raise_keyboard_interrupt(signum: int, frame: FrameType | None) -> None:
@@ -292,18 +395,53 @@ def _raise_keyboard_interrupt(signum: int, frame: FrameType | None) -> None:
 @click.option(
     "-i",
     "--interval",
-    type=click.FloatRange(min=0.1),
-    default=2.0,
+    type=Duration(),
+    default="2s",
     show_default=True,
-    help="Seconds between checks for other processes on the held GPUs.",
+    help="Pause between checks for other processes on the held GPUs, e.g. 500ms, 2s, 1m.",
 )
-def main(gpu_ids: list[int], size: int, interval: float) -> None:
+@click.option(
+    "-c",
+    "--compute-every",
+    type=Duration(),
+    default=None,
+    help=(
+        "Fake compute: every DURATION (e.g. 30s, 5m, 1h) run matmuls on each held GPU, "
+        "so it shows up as busy in nvtop. Uses ~32 MiB more per GPU."
+    ),
+)
+@click.option(
+    "-d",
+    "--compute-for",
+    type=Duration(),
+    default="1s",
+    show_default=True,
+    help=(
+        "How long each fake compute burst lasts; only used with --compute-every. "
+        "A value >= --compute-every keeps the GPUs busy all the time."
+    ),
+)
+@click.pass_context
+def main(
+    ctx: click.Context,
+    gpu_ids: list[int],
+    size: int,
+    interval: float,
+    compute_every: float | None,
+    compute_for: float,
+) -> None:
     """
     Hold memory on GPU_IDS until Ctrl+C and log who else starts using them.
 
     GPU_IDS are nvidia-smi indices, separated by spaces or commas: `0 1 3` or `0,1,3`.
     Actual usage per GPU is SIZE plus the CUDA context (a few hundred MiB).
     """
+    compute_for_source = ctx.get_parameter_source("compute_for")
+    if compute_every is None and compute_for_source is not ParameterSource.DEFAULT:
+        logger.warning(
+            "--compute-for has no effect without --compute-every, ignoring it"
+        )
+
     gpus = _resolve_gpus(gpu_ids)
     _restrict_cuda_to(gpus)
     signal.signal(signal.SIGTERM, _raise_keyboard_interrupt)
@@ -316,10 +454,15 @@ def main(gpu_ids: list[int], size: int, interval: float) -> None:
             raise click.ClickException(
                 "Could not allocate memory on any of the requested GPUs"
             )
+        tasks: list[tuple[float, Callable[[], None]]] = [(interval, watcher.poll)]
+        if compute_every is not None:
+            tasks.append((compute_every, FakeLoad(buffers, compute_for).run))
+            logger.info(
+                f"Faking compute: {format_duration(compute_for)} of matmuls "
+                f"every {format_duration(compute_every)}"
+            )
         logger.info(f"Holding {len(buffers)}/{len(gpus)} GPUs, press Ctrl+C to release")
-        while True:
-            time.sleep(interval)
-            watcher.poll()
+        _run_periodically(tasks)
     except KeyboardInterrupt:
         logger.info("Stopped, GPU memory is released")
     return
