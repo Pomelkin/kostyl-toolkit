@@ -36,6 +36,14 @@ pre-commit install
 `uv sync` uses the dependency groups in `pyproject.toml`, including the heavier ML
 stack used during development.
 
+Edit ML dependencies in `[dependency-groups].ml` only: the release workflow copies
+it into the `ml` extra before building the package and notes the change in the
+release commit. To sync locally:
+
+```bash
+uv run --script .github/scripts/sync_ml_extra.py
+```
+
 Run the test suite with:
 
 ```bash
@@ -54,6 +62,7 @@ uv run pytest
 - `kostyl.ml.dist_utils`: rank helpers, `local_rank_zero_only`, LR scaling by distributed world size, and FSDP helpers.
 - `kostyl.ml.param_groups`: parameter group creation with common no-decay handling.
 - `kostyl.ml.data_collator`: `BatchCollatorWithKeyAlignment` for mapping dataset keys to the names Hugging Face collators expect.
+- `kostyl-hold-gpus`: a CLI that keeps shared GPUs marked as busy while your job starts or restarts.
 
 ## Typed Configs
 
@@ -329,6 +338,22 @@ with DirLock("checkpoints", timeout=60):
     ...  # exclusive access to the directory
 ```
 
+## Holding Shared GPUs
+
+On a shared GPU pool a card usually counts as taken once some memory is allocated
+on it, so it can be grabbed by someone else while your script is starting or after
+it crashes. `kostyl-hold-gpus` (installed with the `ml` extra) allocates a buffer on
+each requested GPU and stays in the foreground until Ctrl+C, logging which users
+start or stop processes on those GPUs meanwhile.
+
+```bash
+kostyl-hold-gpus 0 1 3          # 100mb per GPU by default
+kostyl-hold-gpus 0,1 -s 1.5gb   # sizes use binary units: 1kb = 1024 bytes
+```
+
+GPU ids are `nvidia-smi` indices. Actual usage per GPU is the requested size plus
+the CUDA context (a few hundred MiB).
+
 ## Compatibility Notes
 
 - Python `>=3.10` is required.
@@ -344,6 +369,7 @@ with DirLock("checkpoints", timeout=60):
 ```text
 kostyl/
   ml/
+    cli/                     # command-line tools (kostyl-hold-gpus)
     configs/                 # Pydantic config structs and loading mixins
     dist_utils/              # rank helpers, LR scaling, FSDP helpers
     integrations/
