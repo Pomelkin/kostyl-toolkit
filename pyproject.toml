@@ -25,7 +25,7 @@ ml = [
 ]
 
 [project.scripts]
-kostyl-hold-gpus = "kostyl.ml.cli.hold_gpus:main"
+kostyl-run-exp = "kostyl.ml.cli.hold_gpus:main"
 
 [dependency-groups]
 dev = [

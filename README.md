@@ -62,7 +62,7 @@ uv run pytest
 - `kostyl.ml.dist_utils`: rank helpers, `local_rank_zero_only`, LR scaling by distributed world size, and FSDP helpers.
 - `kostyl.ml.param_groups`: parameter group creation with common no-decay handling.
 - `kostyl.ml.data_collator`: `BatchCollatorWithKeyAlignment` for mapping dataset keys to the names Hugging Face collators expect.
-- `kostyl-hold-gpus`: a CLI that keeps shared GPUs marked as busy while your job starts or restarts.
+- `kostyl-run-exp`: a CLI that keeps shared GPUs marked as busy while your job starts or restarts.
 
 ## Typed Configs
 
@@ -342,15 +342,15 @@ with DirLock("checkpoints", timeout=60):
 
 On a shared GPU pool a card usually counts as taken once some memory is allocated
 on it, so it can be grabbed by someone else while your script is starting or after
-it crashes. `kostyl-hold-gpus` (installed with the `ml` extra) allocates a buffer on
+it crashes. `kostyl-run-exp` (installed with the `ml` extra) allocates a buffer on
 each requested GPU and stays in the foreground until Ctrl+C, logging which users
 start or stop processes on those GPUs meanwhile.
 
 ```bash
-kostyl-hold-gpus 0 1 3          # 100mb per GPU by default
-kostyl-hold-gpus 0,1 -s 1.5gb   # sizes use binary units: 1kb = 1024 bytes
-kostyl-hold-gpus 0 -c 30s       # also run 1s of matmuls every 30s (ms, s, m, h)
-kostyl-hold-gpus 0 -c 1m -d 5s  # 5s of matmuls every minute
+kostyl-run-exp 0 1 3          # 100mb per GPU by default
+kostyl-run-exp 0,1 -s 1.5gb   # sizes use binary units: 1kb = 1024 bytes
+kostyl-run-exp 0 -c 30s       # also run 1s of matmuls every 30s (ms, s, m, h)
+kostyl-run-exp 0 -c 1m -d 5s  # 5s of matmuls every minute
 ```
 
 With `-c/--compute-every` the GPUs also show utilization in `nvtop`/`nvidia-smi`
@@ -374,7 +374,7 @@ the CUDA context (a few hundred MiB).
 ```text
 kostyl/
   ml/
-    cli/                     # command-line tools (kostyl-hold-gpus)
+    cli/                     # command-line tools (kostyl-run-exp)
     configs/                 # Pydantic config structs and loading mixins
     dist_utils/              # rank helpers, LR scaling, FSDP helpers
     integrations/
